@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+
     android:background="@drawable/background_gradient">
 
     <!-- Progress Bar Overlay -->
@@ -35,41 +35,61 @@
             android:textStyle="bold" />
     </FrameLayout>
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:elevation="0dp"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/white"
+            app:title="Add New Product"
+            app:titleTextColor="#1A202C"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:elevation="2dp" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
     <!-- Main Content Container -->
     <LinearLayout
         android:id="@+id/mainContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:padding="16dp"
         android:orientation="vertical">
 
-        <!-- Header -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="20dp">
+<!--        &lt;!&ndash; Header &ndash;&gt;-->
+<!--        <LinearLayout-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal"-->
+<!--            android:gravity="center_vertical"-->
+<!--            android:layout_marginBottom="20dp">-->
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_add_product"
-                android:layout_marginEnd="12dp"
-                app:tint="#2c3e50" />
+<!--            <ImageView-->
+<!--                android:layout_width="24dp"-->
+<!--                android:layout_height="24dp"-->
+<!--                android:src="@drawable/ic_arrow_back"-->
+<!--                android:layout_marginEnd="12dp"-->
+<!--                app:tint="#2c3e50" />-->
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Add New Product"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="#2c3e50" />
+<!--            <TextView-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="Add New Product"-->
+<!--                android:textSize="24sp"-->
+<!--                android:textStyle="bold"-->
+<!--                android:textColor="#2c3e50" />-->
 
-            <View
-                android:layout_width="24dp"
-                android:layout_height="24dp" />
-        </LinearLayout>
+<!--            <View-->
+<!--                android:layout_width="24dp"-->
+<!--                android:layout_height="24dp" />-->
+<!--        </LinearLayout>-->
 
         <ScrollView
             android:layout_width="match_parent"

@@ -100,6 +100,7 @@ public class AddProductActivity extends AppCompatActivity {
             // Initialize views
             Log.d(TAG, "Initializing views...");
             initializeViews();
+            setupToolbar();
 
             // Setup components
             Log.d(TAG, "Setting up spinners...");
@@ -133,6 +134,17 @@ public class AddProductActivity extends AppCompatActivity {
         });
     }
 
+    private void setupToolbar() {
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+    }
+
     private void hideProgress() {
         runOnUiThread(() -> {
             progressOverlay.setVisibility(View.GONE);
@@ -143,6 +155,7 @@ public class AddProductActivity extends AppCompatActivity {
 
     private void initializeViews() {
         try {
+
             // Text Input Fields
             etProductName = findViewById(R.id.etProductName);
             etMeasurement = findViewById(R.id.etMeasurement);
