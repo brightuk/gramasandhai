@@ -62,6 +62,10 @@ public class AddProductActivity extends AppCompatActivity {
     private LinearLayout containerVariants;
     private ImageView ivProductImagePreview;
 
+    // Progress bar elements
+    private FrameLayout progressOverlay;
+    private LinearLayout mainContent;
+
     private Uri productImageUri;
     private String currentPhotoPath;
     private int variantCount = 0;
@@ -90,6 +94,9 @@ public class AddProductActivity extends AppCompatActivity {
             setContentView(R.layout.activity_add_product);
             Log.d(TAG, "setContentView completed");
 
+            // Initialize progress bar
+            initializeProgressBar();
+
             // Initialize views
             Log.d(TAG, "Initializing views...");
             initializeViews();
@@ -111,6 +118,27 @@ public class AddProductActivity extends AppCompatActivity {
             Toast.makeText(this, "Error loading page: " + e.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
             finish();
         }
+    }
+
+    private void initializeProgressBar() {
+        progressOverlay = findViewById(R.id.progressOverlay);
+        mainContent = findViewById(R.id.mainContent);
+    }
+
+    private void showProgress() {
+        runOnUiThread(() -> {
+            progressOverlay.setVisibility(View.VISIBLE);
+            mainContent.setAlpha(0.5f);
+            mainContent.setEnabled(false);
+        });
+    }
+
+    private void hideProgress() {
+        runOnUiThread(() -> {
+            progressOverlay.setVisibility(View.GONE);
+            mainContent.setAlpha(1.0f);
+            mainContent.setEnabled(true);
+        });
     }
 
     private void initializeViews() {
@@ -176,6 +204,8 @@ public class AddProductActivity extends AppCompatActivity {
     private void loadCategories() {
         Log.d("ShopID", shopId());
 
+        showProgress(); // Show progress when starting
+
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(Attributes.Main_Url + "shop/" + shopId() + "/addproduct")
@@ -187,6 +217,7 @@ public class AddProductActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
+                    hideProgress(); // Hide progress on failure
                     Toast.makeText(AddProductActivity.this,
                             "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
@@ -199,6 +230,7 @@ public class AddProductActivity extends AppCompatActivity {
                 Log.d("Categories_RESPONSE", responseBodyString);
 
                 runOnUiThread(() -> {
+                    hideProgress(); // Hide progress on response
                     try {
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
@@ -837,10 +869,7 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private void submitProductToServer() {
-        ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Adding product...");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
+        showProgress(); // Show progress when submitting
 
         try {
             // Get main product data
@@ -929,7 +958,7 @@ public class AddProductActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     runOnUiThread(() -> {
-                        progressDialog.dismiss();
+                        hideProgress(); // Hide progress on failure
                         Toast.makeText(AddProductActivity.this, "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         Log.e("SUBMIT_ERROR", "Request failed: " + e.getMessage());
                     });
@@ -941,7 +970,7 @@ public class AddProductActivity extends AppCompatActivity {
                     Log.d("SUBMIT_RESPONSE", responseBody);
 
                     runOnUiThread(() -> {
-                        progressDialog.dismiss();
+                        hideProgress(); // Hide progress on response
                         try {
                             JSONObject jsonResponse = new JSONObject(responseBody);
                             if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
@@ -960,7 +989,7 @@ public class AddProductActivity extends AppCompatActivity {
             });
 
         } catch (Exception e) {
-            progressDialog.dismiss();
+            hideProgress(); // Hide progress on exception
             Log.e(TAG, "Error submitting product: " + e.getMessage(), e);
             Toast.makeText(this, "Error submitting product: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -1038,7 +1067,6 @@ public class AddProductActivity extends AppCompatActivity {
             Log.e(TAG, "Error adding variants as arrays: " + e.getMessage(), e);
         }
     }
-
 
     private String getDiscountTypeValue(String displayValue) {
         switch (displayValue) {
