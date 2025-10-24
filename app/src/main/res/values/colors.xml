@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="primary_color">#2196F3</color>
+
+    <color name="secondary_text">#757575</color>
+    <color name="border_color">#E0E0E0</color>
+    <color name="light_grey">#F5F5F5</color>
+    <color name="error_red">#F44336</color>
+    <color name="success_green">#4CAF50</color>
+
+
+    <color name="primary_dark">#1B5E20</color>
+    <color name="primary_light">#4CAF50</color>
+
+    <color name="light_background">#F5F5F5</color>
+
+    <color name="white_alpha">#B3FFFFFF</color>
+
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+
+
+    <color name="warning_orange">#FF9800</color>
+
+
+    <color name="divider_color">#E0E0E0</color>
+
+
+    <color name="gray">#9E9E9E</color>
+    <color name="dark_gray">#616161</color>
+    <color name="light_gray">#E0E0E0</color>
+    <color name="light_gray_background">#F5F5F5</color>
+    <color name="green">#4CAF50</color>
+    <color name="orange">#FF9800</color>
+
+    <!-- Category Colors -->
+    <color name="category_color_1">#E3F2FD</color>
+    <color name="category_color_2">#F3E5F5</color>
+    <color name="category_color_3">#E8F5E8</color>
+    <color name="category_color_4">#FFF3E0</color>
+    <color name="category_color_5">#FCE4EC</color>
+    <color name="category_color_6">#E0F2F1</color>
+
+    <color name="chip_background_color">#F5F5F5</color>
+
+    <color name="red">#F44336</color>
+
+
+    <!-- Chip Colors -->
+    <color name="chip_color_1">#E3F2FD</color>
+    <color name="chip_color_2">#F3E5F5</color>
+    <color name="chip_color_3">#E8F5E8</color>
+    <color name="chip_color_4">#FFF3E0</color>
+    <color name="chip_color_5">#FCE4EC</color>
+    <color name="chip_color_6">#E0F2F1</color>
+    <color name="chip_color_7">#FFF8E1</color>
+    <color name="chip_color_8">#E8EAF6</color>
+
+
+    <color name="switch_track">#E2E8F0</color>
+
+    <!-- Modern Color Palette -->
+    <color name="primary_50">#EEF2FF</color>
+    <color name="primary_500">#4F46E5</color>
+    <color name="primary_600">#4338CA</color>
+
+    <color name="gray_50">#F8FAFC</color>
+    <color name="gray_100">#F1F5F9</color>
+    <color name="gray_200">#E2E8F0</color>
+    <color name="gray_300">#CBD5E0</color>
+    <color name="gray_400">#A0AEC0</color>
+    <color name="gray_500">#718096</color>
+    <color name="gray_600">#4A5568</color>
+    <color name="gray_700">#2D3748</color>
+    <color name="gray_800">#1A202C</color>
+
+    <color name="green_500">#48BB78</color>
+    <color name="red_500">#F56565</color>
+    <color name="yellow_500">#ECC94B</color>
+
+
+    <color name="primaryColor">#6366F1</color>
+    <color name="primaryLight">#A5B4FC</color>
+    <color name="primaryDark">#4338CA</color>
+
+    <!-- Surface Colors -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surfaceVariant">#F8FAFC</color>
+    <color name="background">#F1F5F9</color>
+
+    <!-- Text Colors -->
+    <color name="onSurface">#1E293B</color>
+    <color name="onSurfaceVariant">#475569</color>
+    <color name="outline">#CBD5E1</color>
+    <color name="outlineVariant">#E2E8F0</color>
+
+    <!-- Semantic Colors -->
+
+
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#6366F1</color>
+    <color name="gradient_middle">#8B5CF6</color>
+    <color name="gradient_end">#A855F7</color>
+
+    <!-- Discount Colors -->
+    <color name="discount_start">#EC4899</color>
+    <color name="discount_end">#F59E0B</color>
+
+    <!-- Switch Colors -->
+
+    <color name="switch_thumb">#FFFFFF</color>
+
+    <!-- State Colors -->
+    <color name="ripple_color">#1A6366F1</color>
+    <color name="pressed_state">#0A000000</color>
+
+
+    <!-- Primary Colors -->
+    <color name="colorPrimary">#3182CE</color>
+    <color name="colorPrimaryDark">#2C5AA0</color>
+    <color name="colorAccent">#667EEA</color>
+
+    <!-- Background Colors -->
+
+
+
+    <!-- Text Colors -->
+
+    <color name="text_hint">#A0AEC0</color>
+
+    <!-- Status Colors -->
+    <color name="success">#38A169</color>
+    <color name="error">#E53E3E</color>
+    <color name="warning">#D69E2E</color>
+    <color name="info">#3182CE</color>
+
+    <!-- Border Colors -->
+    <color name="border_light">#E2E8F0</color>
+    <color name="border_medium">#CBD5E0</color>
+
+    <!-- Switch Colors -->
+
+
+    <!-- Shimmer Color -->
+    <color name="shimmer_color">#E2E8F0</color>
+
+    <!-- Gradient Colors -->
+
+    <color name="gradient_center">#764BA2</color>
+
+    <color name="gray_light">#FFE0E0E0</color>
+
+    <color name="blue_500">#FF2196F3</color>
+
+    <color name="orange_500">#FFFF9800</color>
+
+    <!-- Material Design Colors -->
+
+    <color name="primaryDarkColor">#3700B3</color>
+    <color name="accentColor">#03DAC5</color>
+    <color name="backgroundColor">#FAFAFA</color>
+    <color name="surfaceColor">#FFFFFF</color>
+    <color name="onPrimary">#FFFFFF</color>
+    <color name="onBackground">#000000</color>
+
+    <color name="textColorPrimary">#212121</color>
+    <color name="textColorSecondary">#757575</color>
+    <color name="dividerColor">#BDBDBD</color>
+
+
+
+
+
+    <color name="toggle_button_ripple_color">#1A2196F3</color>
+
+
+
+    <!-- Order Management Colors - Add these -->
+    <color name="grey_600">#757575</color>
+    <color name="grey_700">#616161</color>
+
+    <!-- Status Colors -->
+    <color name="status_pending">#FF9800</color>
+    <color name="status_processing">#2196F3</color>
+    <color name="status_completed">#4CAF50</color>
+    <color name="status_cancelled">#F44336</color>
+
+    <!-- Background Colors -->
+    <color name="order_card_background">@android:color/white</color>
+    <color name="order_screen_background">#F5F7FA</color>
+
+    <!-- Text Colors -->
+    <color name="order_title_color">@android:color/black</color>
+    <color name="order_subtitle_color">#424242</color>
+    <color name="order_caption_color">#757575</color>
+
+    <!-- Button Colors -->
+    <color name="order_button_primary">#2196F3</color>
+    <color name="order_button_secondary">#757575</color>
+
+
+
+
+
+
+</resources>
+
