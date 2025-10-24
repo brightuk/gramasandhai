@@ -219,6 +219,7 @@
 
     </androidx.core.widget.NestedScrollView>
 
+
     <!-- Progress Bar Loading Indicator -->
     <ProgressBar
         android:id="@+id/progressBar"
