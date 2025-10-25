@@ -869,6 +869,74 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Variant Control Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@android:color/white">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Add Variants?"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2c3e50"
+                            android:layout_marginBottom="16dp"
+                            android:drawablePadding="8dp"
+                            android:drawableStart="@drawable/ic_variants" />
+
+                        <!-- Variant Control Radio Group -->
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Do you want to add product variants? *"
+                            android:textColor="#34495e"
+                            android:textSize="14sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:layout_marginBottom="8dp" />
+
+                        <RadioGroup
+                            android:id="@+id/radioVariantControl"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <RadioButton
+                                android:id="@+id/radioVariantYes"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:text="Yes"
+                                android:textSize="14sp"
+                                android:buttonTint="#3498db"
+                                android:paddingStart="16dp" />
+
+                            <RadioButton
+                                android:id="@+id/radioVariantNo"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:text="No"
+                                android:textSize="14sp"
+                                android:buttonTint="#3498db"
+                                android:paddingStart="16dp"
+                                android:checked="true" />
+                        </RadioGroup>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- Variants Section Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"

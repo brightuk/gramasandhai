@@ -54,8 +54,8 @@ public class AddProductActivity extends AppCompatActivity {
     // Main form fields
     private TextInputEditText etProductName, etMeasurement, etPrice, etSKU, etHSNCode, etStock, etDiscountPrice;
     private TextInputEditText etManufacturer, etMadeIn, etProductDescription, etShippingPolicy, etFSSAINo, etTax;
-    private RadioGroup radioProductType;
-    private RadioButton radioPacked, radioLoose;
+    private RadioGroup radioProductType, radioVariantControl;
+    private RadioButton radioPacked, radioLoose, radioVariantYes, radioVariantNo;
     private Spinner spinnerMeasurementUnit, spinnerStockUnit, spinnerDiscountType, spinnerStatus;
     private Spinner spinnerCategory, spinnerSubcategory;
     private Button btnSelectImage, btnAddVariant, btnSubmit;
@@ -177,6 +177,11 @@ public class AddProductActivity extends AppCompatActivity {
             radioProductType = findViewById(R.id.radioProductType);
             radioPacked = findViewById(R.id.radioPacked);
             radioLoose = findViewById(R.id.radioLoose);
+
+            // Variant Control Radio Group
+            radioVariantControl = findViewById(R.id.radioVariantControl);
+            radioVariantYes = findViewById(R.id.radioVariantYes);
+            radioVariantNo = findViewById(R.id.radioVariantNo);
 
             // Spinners
             spinnerMeasurementUnit = findViewById(R.id.spinnerMeasurementUnit);
@@ -459,6 +464,59 @@ public class AddProductActivity extends AppCompatActivity {
 
         btnSelectImage.setOnClickListener(v -> showImageSelectionDialog());
         btnAddVariant.setOnClickListener(v -> addVariantForm());
+
+        // Variant control radio group listener
+        radioVariantControl.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.radioVariantYes) {
+                // Show variant section
+                showVariantSection();
+            } else if (checkedId == R.id.radioVariantNo) {
+                // Hide variant section
+                hideVariantSection();
+            }
+        });
+
+        // Initially hide variant section since "No" is checked by default
+        hideVariantSection();
+    }
+
+    private void showVariantSection() {
+        // Find the variants card and show it
+        com.google.android.material.card.MaterialCardView variantsCard = findViewById(R.id.containerVariants)
+                .getParent().getParent() instanceof com.google.android.material.card.MaterialCardView ?
+                (com.google.android.material.card.MaterialCardView) ((View) findViewById(R.id.containerVariants).getParent()).getParent() : null;
+
+        if (variantsCard != null) {
+            variantsCard.setVisibility(View.VISIBLE);
+        }
+
+        // Enable add variant button
+        btnAddVariant.setEnabled(true);
+        btnAddVariant.setAlpha(1.0f);
+    }
+
+    private void hideVariantSection() {
+        // Find the variants card and hide it
+        com.google.android.material.card.MaterialCardView variantsCard = findViewById(R.id.containerVariants)
+                .getParent().getParent() instanceof com.google.android.material.card.MaterialCardView ?
+                (com.google.android.material.card.MaterialCardView) ((View) findViewById(R.id.containerVariants).getParent()).getParent() : null;
+
+        if (variantsCard != null) {
+            variantsCard.setVisibility(View.GONE);
+        }
+
+        // Disable add variant button
+        btnAddVariant.setEnabled(false);
+        btnAddVariant.setAlpha(0.5f);
+
+        // Clear all existing variants
+        clearAllVariants();
+    }
+
+    private void clearAllVariants() {
+        containerVariants.removeAllViews();
+        variantViews.clear();
+        variantCount = 0;
     }
 
     private void showImageSelectionDialog() {
@@ -616,6 +674,12 @@ public class AddProductActivity extends AppCompatActivity {
 
     private void addVariantForm() {
         try {
+            // Check if variant section is enabled
+            if (!radioVariantYes.isChecked()) {
+                Toast.makeText(this, "Please enable variants first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             variantCount++;
             LayoutInflater inflater = LayoutInflater.from(this);
             View variantView = inflater.inflate(R.layout.item_variant_form, containerVariants, false);
@@ -696,7 +760,8 @@ public class AddProductActivity extends AppCompatActivity {
             return;
         }
 
-        if (!validateVariants()) {
+        // Only validate variants if "Yes" is selected
+        if (radioVariantYes.isChecked() && !validateVariants()) {
             return;
         }
 
@@ -727,6 +792,12 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
+        // Validate variant control selection
+        if (radioVariantControl.getCheckedRadioButtonId() == -1) {
+            Toast.makeText(this, "Please select if you want to add variants", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
         if (spinnerCategory.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select category", Toast.LENGTH_SHORT).show();
             return false;
@@ -752,21 +823,6 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
-//        if (sku.isEmpty()) {
-//            etSKU.setError("SKU is required");
-//            return false;
-//        }
-
-//        if (hsnCode.isEmpty()) {
-//            etHSNCode.setError("HSN Code is required");
-//            return false;
-//        }
-
-//        if (stock.isEmpty()) {
-//            etStock.setError("Stock is required");
-//            return false;
-//        }
-
         if (spinnerStockUnit.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select stock unit", Toast.LENGTH_SHORT).show();
             return false;
@@ -781,26 +837,6 @@ public class AddProductActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select status", Toast.LENGTH_SHORT).show();
             return false;
         }
-
-//        if (manufacturer.isEmpty()) {
-//            etManufacturer.setError("Manufacturer is required");
-//            return false;
-//        }
-//
-//        if (madeIn.isEmpty()) {
-//            etMadeIn.setError("Made in country is required");
-//            return false;
-//        }
-//
-//        if (productDescription.isEmpty()) {
-//            etProductDescription.setError("Product description is required");
-//            return false;
-//        }
-//
-//        if (shippingPolicy.isEmpty()) {
-//            etShippingPolicy.setError("Shipping policy is required");
-//            return false;
-//        }
 
         if (fssaiNo.isEmpty()) {
             etFSSAINo.setError("FSSAI number is required");
@@ -821,6 +857,17 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private boolean validateVariants() {
+        // If variants are disabled, no need to validate
+        if (!radioVariantYes.isChecked()) {
+            return true;
+        }
+
+        // Check if at least one variant is added when "Yes" is selected
+        if (variantViews.isEmpty()) {
+            Toast.makeText(this, "Please add at least one variant", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
         for (View variantView : variantViews) {
             TextInputEditText etVariantMeasurement = variantView.findViewById(R.id.etVariantMeasurement);
             TextInputEditText etVariantPrice = variantView.findViewById(R.id.etVariantPrice);
@@ -848,20 +895,20 @@ public class AddProductActivity extends AppCompatActivity {
                 return false;
             }
 
-            if (etVariantSKU.getText().toString().trim().isEmpty()) {
-                etVariantSKU.setError("SKU is required");
-                return false;
-            }
-
-            if (etVariantHSNCode.getText().toString().trim().isEmpty()) {
-                etVariantHSNCode.setError("HSN Code is required");
-                return false;
-            }
-
-            if (etVariantStock.getText().toString().trim().isEmpty()) {
-                etVariantStock.setError("Stock is required");
-                return false;
-            }
+//            if (etVariantSKU.getText().toString().trim().isEmpty()) {
+//                etVariantSKU.setError("SKU is required");
+//                return false;
+//            }
+//
+//            if (etVariantHSNCode.getText().toString().trim().isEmpty()) {
+//                etVariantHSNCode.setError("HSN Code is required");
+//                return false;
+//            }
+//
+//            if (etVariantStock.getText().toString().trim().isEmpty()) {
+//                etVariantStock.setError("Stock is required");
+//                return false;
+//            }
 
             if (spinnerVariantStockUnit.getSelectedItemPosition() == 0) {
                 Toast.makeText(this, "Please select stock unit for variant", Toast.LENGTH_SHORT).show();
@@ -953,8 +1000,8 @@ public class AddProductActivity extends AppCompatActivity {
                 }
             }
 
-            // Add variants as arrays
-            if (!variantViews.isEmpty()) {
+            // Add variants as arrays only if "Yes" is selected and variants exist
+            if (radioVariantYes.isChecked() && !variantViews.isEmpty()) {
                 addVariantsAsArrays(multipartBuilder);
             }
 
