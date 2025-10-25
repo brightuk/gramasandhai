@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -15,10 +17,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.card.MaterialCardView;
 import com.shop.gramasandhai.Attributes.Attributes;
 import com.shop.gramasandhai.R;
@@ -41,22 +45,23 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tvDate, tvShopName, orderCount, totalRevenue, pendingOrderCount, completedCount;
     private Toolbar toolbar;
+    private ShimmerFrameLayout shimmerFrameLayout;
+    private ScrollView mainScrollView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
         setupToolbar();
-
-        // Initialize views first
         initializeViews();
-
-        // Then call other methods
         setupClickListeners();
         updateCurrentDate();
-        dashboardCount(shopId());
 
+        // Show shimmer and load data
+        showShimmerLoading();
+        dashboardCount(shopId());
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -136,6 +141,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
+
+        shimmerFrameLayout = findViewById(R.id.shimmer_view_container); // Add this to your main layout
+        shimmerFrameLayout = findViewById(R.id.shimmer_view_container);
+        mainScrollView = findViewById(R.id.main_scroll_view);
+
 //        tvDate = findViewById(R.id.tvDate);
 //        tvShopName = findViewById(R.id.tvShopName);
         orderCount = findViewById(R.id.orderCount);
@@ -147,6 +157,22 @@ public class MainActivity extends AppCompatActivity {
         String name = prefs.getString("name", "");
         toolbar.setTitle(name);
 //        tvShopName.setText(name);
+    }
+
+
+
+
+
+    private void showShimmerLoading() {
+        mainScrollView.setVisibility(View.GONE);
+        shimmerFrameLayout.setVisibility(View.VISIBLE);
+        shimmerFrameLayout.startShimmer();
+    }
+
+    private void hideShimmerLoading() {
+        shimmerFrameLayout.stopShimmer();
+        shimmerFrameLayout.setVisibility(View.GONE);
+        mainScrollView.setVisibility(View.VISIBLE);
     }
 
     private String shopId() {
@@ -215,6 +241,7 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+
     public void dashboardCount(String shopId) {
         OkHttpClient client = new OkHttpClient();
 
@@ -230,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
+                    hideShimmerLoading();
                     Toast.makeText(MainActivity.this, "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
                 Log.e("API_ERROR", "Request failed: " + e.getMessage());
@@ -241,6 +269,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("DASHBOARD_RESPONSE", responseBodyString);
 
                 runOnUiThread(() -> {
+                    hideShimmerLoading(); // Hide shimmer when data is loaded
+
                     try {
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
@@ -271,6 +301,22 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (shimmerFrameLayout != null) {
+            shimmerFrameLayout.startShimmer();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (shimmerFrameLayout != null) {
+            shimmerFrameLayout.stopShimmer();
+        }
     }
 
     private void setupClickListeners() {

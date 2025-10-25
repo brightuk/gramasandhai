@@ -200,6 +200,7 @@
     <!-- Text Colors -->
     <color name="order_title_color">@android:color/black</color>
     <color name="order_subtitle_color">#424242</color>
+
     <color name="order_caption_color">#757575</color>
 
     <!-- Button Colors -->
