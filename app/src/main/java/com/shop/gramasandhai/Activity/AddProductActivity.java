@@ -752,20 +752,20 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
-        if (sku.isEmpty()) {
-            etSKU.setError("SKU is required");
-            return false;
-        }
+//        if (sku.isEmpty()) {
+//            etSKU.setError("SKU is required");
+//            return false;
+//        }
 
-        if (hsnCode.isEmpty()) {
-            etHSNCode.setError("HSN Code is required");
-            return false;
-        }
+//        if (hsnCode.isEmpty()) {
+//            etHSNCode.setError("HSN Code is required");
+//            return false;
+//        }
 
-        if (stock.isEmpty()) {
-            etStock.setError("Stock is required");
-            return false;
-        }
+//        if (stock.isEmpty()) {
+//            etStock.setError("Stock is required");
+//            return false;
+//        }
 
         if (spinnerStockUnit.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select stock unit", Toast.LENGTH_SHORT).show();
@@ -782,25 +782,25 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
-        if (manufacturer.isEmpty()) {
-            etManufacturer.setError("Manufacturer is required");
-            return false;
-        }
-
-        if (madeIn.isEmpty()) {
-            etMadeIn.setError("Made in country is required");
-            return false;
-        }
-
-        if (productDescription.isEmpty()) {
-            etProductDescription.setError("Product description is required");
-            return false;
-        }
-
-        if (shippingPolicy.isEmpty()) {
-            etShippingPolicy.setError("Shipping policy is required");
-            return false;
-        }
+//        if (manufacturer.isEmpty()) {
+//            etManufacturer.setError("Manufacturer is required");
+//            return false;
+//        }
+//
+//        if (madeIn.isEmpty()) {
+//            etMadeIn.setError("Made in country is required");
+//            return false;
+//        }
+//
+//        if (productDescription.isEmpty()) {
+//            etProductDescription.setError("Product description is required");
+//            return false;
+//        }
+//
+//        if (shippingPolicy.isEmpty()) {
+//            etShippingPolicy.setError("Shipping policy is required");
+//            return false;
+//        }
 
         if (fssaiNo.isEmpty()) {
             etFSSAINo.setError("FSSAI number is required");
