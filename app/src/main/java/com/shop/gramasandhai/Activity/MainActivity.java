@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         updateCurrentDate();
         dashboardCount(shopId());
 
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         if (toolbar != null) {
             Log.d("TOOLBAR_DEBUG", "Toolbar found, setting as support action bar");
             setSupportActionBar(toolbar);
+
 
             // Optional: Enable the title if you want
             if (getSupportActionBar() != null) {
@@ -134,8 +136,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-        tvDate = findViewById(R.id.tvDate);
-        tvShopName = findViewById(R.id.tvShopName);
+//        tvDate = findViewById(R.id.tvDate);
+//        tvShopName = findViewById(R.id.tvShopName);
         orderCount = findViewById(R.id.orderCount);
         totalRevenue = findViewById(R.id.totalRevenue);
         pendingOrderCount = findViewById(R.id.pendingOrderCount);
@@ -143,7 +145,8 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences prefs = getSharedPreferences("UserSession", MODE_PRIVATE);
         String name = prefs.getString("name", "");
-        tvShopName.setText(name);
+        toolbar.setTitle(name);
+//        tvShopName.setText(name);
     }
 
     private String shopId() {
@@ -300,6 +303,6 @@ public class MainActivity extends AppCompatActivity {
     private void updateCurrentDate() {
         SimpleDateFormat sdf = new SimpleDateFormat("EEEE, MMMM d, yyyy • hh:mm a", Locale.getDefault());
         String currentDate = sdf.format(new Date());
-        tvDate.setText(currentDate);
+//        tvDate.setText(currentDate);
     }
 }

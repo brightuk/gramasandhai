@@ -196,6 +196,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         btnRetry.setOnClickListener(v -> loadProductDataFromAPI());
     }
 
+
     private void updateStatusBadge(boolean isActive) {
         if (isActive) {
             tvStatusBadge.setText("Active");

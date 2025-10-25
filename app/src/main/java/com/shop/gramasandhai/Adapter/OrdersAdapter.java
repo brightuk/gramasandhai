@@ -126,7 +126,7 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
             setStatusUI(order.getOrderStatus());
 
             // Set click listeners
-            cardView.setOnClickListener(v -> orderClickListener.onOrderClick(order));
+//            cardView.setOnClickListener(v -> orderClickListener.onOrderClick(order));
             btnViewDetails.setOnClickListener(v -> orderClickListener.onOrderClick(order));
             btnUpdateStatus.setOnClickListener(v -> statusUpdateListener.onStatusUpdateClick(order));
 

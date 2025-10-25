@@ -37,64 +37,64 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Welcome Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/primary_color">
+<!--            &lt;!&ndash; Welcome Card &ndash;&gt;-->
+<!--            <com.google.android.material.card.MaterialCardView-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_marginBottom="16dp"-->
+<!--                app:cardCornerRadius="16dp"-->
+<!--                app:cardElevation="4dp"-->
+<!--                app:cardBackgroundColor="@color/primary_color">-->
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="20dp">
+<!--                <LinearLayout-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:orientation="horizontal"-->
+<!--                    android:padding="20dp">-->
 
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+<!--                    <LinearLayout-->
+<!--                        android:layout_width="0dp"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_weight="1"-->
+<!--                        android:orientation="vertical">-->
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Welcome Back!"
-                            android:textColor="@android:color/white"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
+<!--                        <TextView-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:text="Welcome Back!"-->
+<!--                            android:textColor="@android:color/white"-->
+<!--                            android:textSize="18sp"-->
+<!--                            android:textStyle="bold" />-->
 
-                        <TextView
-                            android:id="@+id/tvShopName"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="Gramasandhai Store"
-                            android:textColor="@android:color/white"
-                            android:textSize="14sp" />
+<!--                        <TextView-->
+<!--                            android:id="@+id/tvShopName"-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:layout_marginTop="4dp"-->
+<!--                            android:text="Gramasandhai Store"-->
+<!--                            android:textColor="@android:color/white"-->
+<!--                            android:textSize="14sp" />-->
 
-                        <TextView
-                            android:id="@+id/tvDate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Today, 12:30 PM"
-                            android:textColor="#B3FFFFFF"
-                            android:textSize="12sp" />
+<!--                        <TextView-->
+<!--                            android:id="@+id/tvDate"-->
+<!--                            android:layout_width="wrap_content"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:layout_marginTop="8dp"-->
+<!--                            android:text="Today, 12:30 PM"-->
+<!--                            android:textColor="#B3FFFFFF"-->
+<!--                            android:textSize="12sp" />-->
 
-                    </LinearLayout>
+<!--                    </LinearLayout>-->
 
-                    <ImageView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:src="@android:drawable/ic_menu_manage"
-                        app:tint="@android:color/white" />
+<!--                    <ImageView-->
+<!--                        android:layout_width="60dp"-->
+<!--                        android:layout_height="60dp"-->
+<!--                        android:src="@android:drawable/ic_menu_manage"-->
+<!--                        app:tint="@android:color/white" />-->
 
-                </LinearLayout>
+<!--                </LinearLayout>-->
 
-            </com.google.android.material.card.MaterialCardView>
+<!--            </com.google.android.material.card.MaterialCardView>-->
 
             <!-- Stats Row -->
             <LinearLayout

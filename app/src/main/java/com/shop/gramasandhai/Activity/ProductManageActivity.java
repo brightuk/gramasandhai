@@ -115,6 +115,7 @@ public class ProductManageActivity extends AppCompatActivity {
         fabAddProduct = findViewById(R.id.fabAddProduct);
     }
 
+
     private void setupToolbar() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -286,6 +287,7 @@ public class ProductManageActivity extends AppCompatActivity {
                 // Build full image URL
                 String imageUrl = productObj.optString("main_image", "");
                 product.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
+                product.setStatus(String.valueOf(productObj.optInt("status")));
                 product.setCategoryId(productObj.optString("category_id", ""));
                 product.setSubcategoryId(productObj.optString("subcategory_id", ""));
 
@@ -295,6 +297,7 @@ public class ProductManageActivity extends AppCompatActivity {
 
         // Pass the full API response to product adapter for variants data
         productAdapter.setApiResponseData(responseObject);
+
 
         // Initialize filtered lists with all data
         filteredCategoryList = new ArrayList<>(categoryList);
@@ -362,6 +365,7 @@ public class ProductManageActivity extends AppCompatActivity {
         rvItems.setAdapter(productAdapter);
         productAdapter.updateList(filteredProductList);
         updateStats(filteredProductList.size(), getActiveCount(filteredProductList));
+        Log.d("productsize",String.valueOf(filteredProductList.size())+" productcount :"+getActiveCount(filteredProductList));
         tvTotalLabel.setText("Products");
         cardBreadcrumb.setVisibility(View.VISIBLE);
 
@@ -399,7 +403,11 @@ public class ProductManageActivity extends AppCompatActivity {
     private void updateStats(int total, int active) {
         tvTotalItems.setText(String.valueOf(total));
         tvActiveItems.setText(String.valueOf(active));
+        Log.d("tvActiveItems",String.valueOf(active));
     }
+
+
+
 
     private int getActiveCount(List<?> items) {
         int activeCount = 0;
