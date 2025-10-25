@@ -229,14 +229,21 @@
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxStrokeColor="#bdc3c7"
-                            app:hintTextColor="#7f8c8d">
+                            app:hintTextColor="#7f8c8d"
+                            app:hintEnabled="false"
+
+                            app:startIconTint="#7f8c8d">
 
                             <Spinner
                                 android:id="@+id/spinnerCategory"
                                 android:layout_width="match_parent"
                                 android:layout_height="48dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp" />
+                                android:background="@drawable/spinner_background1"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:dropDownVerticalOffset="4dp"
+                                android:spinnerMode="dropdown" />
+
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <!-- Subcategory Spinner -->
@@ -244,20 +251,27 @@
                             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
+                            android:layout_marginBottom="12dp"
                             app:boxCornerRadiusBottomEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxStrokeColor="#bdc3c7"
-                            app:hintTextColor="#7f8c8d">
+                            app:hintTextColor="#7f8c8d"
+                            app:hintEnabled="false"
+
+                            app:startIconTint="#7f8c8d">
 
                             <Spinner
                                 android:id="@+id/spinnerSubcategory"
                                 android:layout_width="match_parent"
                                 android:layout_height="48dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp" />
+                                android:background="@drawable/spinner_background1"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:dropDownVerticalOffset="4dp"
+                                android:spinnerMode="dropdown" />
+
                         </com.google.android.material.textfield.TextInputLayout>
 
                     </LinearLayout>
@@ -330,6 +344,7 @@
                                 app:boxCornerRadiusBottomStart="8dp"
                                 app:boxCornerRadiusTopEnd="8dp"
                                 app:boxCornerRadiusTopStart="8dp"
+                                android:gravity="center"
                                 app:boxStrokeColor="#bdc3c7"
                                 app:hintTextColor="#7f8c8d">
 
@@ -337,6 +352,8 @@
                                     android:id="@+id/spinnerMeasurementUnit"
                                     android:layout_width="match_parent"
                                     android:layout_height="48dp"
+                                    android:background="@drawable/spinner_background1"
+
                                     android:paddingStart="0dp"
                                     android:paddingEnd="0dp" />
                             </com.google.android.material.textfield.TextInputLayout>
@@ -482,6 +499,7 @@
                                 <Spinner
                                     android:id="@+id/spinnerStockUnit"
                                     android:layout_width="match_parent"
+                                    android:background="@drawable/spinner_background1"
                                     android:layout_height="48dp"
                                     android:paddingStart="0dp"
                                     android:paddingEnd="0dp" />
@@ -508,6 +526,7 @@
                                     android:id="@+id/spinnerStatus"
                                     android:layout_width="match_parent"
                                     android:layout_height="48dp"
+                                    android:background="@drawable/spinner_background1"
                                     android:paddingStart="0dp"
                                     android:paddingEnd="0dp" />
                             </com.google.android.material.textfield.TextInputLayout>
@@ -553,6 +572,7 @@
                                 app:boxCornerRadiusBottomStart="8dp"
                                 app:boxCornerRadiusTopEnd="8dp"
                                 app:boxCornerRadiusTopStart="8dp"
+                                android:gravity="center"
                                 app:boxStrokeColor="#bdc3c7"
                                 app:hintTextColor="#7f8c8d">
 
@@ -560,6 +580,7 @@
                                     android:id="@+id/spinnerDiscountType"
                                     android:layout_width="match_parent"
                                     android:layout_height="48dp"
+                                    android:background="@drawable/spinner_background1"
                                     android:paddingStart="0dp"
                                     android:paddingEnd="0dp" />
                             </com.google.android.material.textfield.TextInputLayout>
