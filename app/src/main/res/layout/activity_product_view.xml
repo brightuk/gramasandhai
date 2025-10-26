@@ -480,5 +480,19 @@
 
     <!-- Floating Action Button -->
 
+    <!-- Add this inside your CoordinatorLayout in activity_product_view.xml -->
+    <!-- Add this inside your CoordinatorLayout in activity_product_view.xml -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabAddVariant"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="Add Variant"
+        app:icon="@drawable/ic_add"
+        app:backgroundTint="#3182CE"
+        app:cornerRadius="12dp"
+        app:layout_anchor="@id/contentLayout"
+        app:layout_anchorGravity="bottom|end" />
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

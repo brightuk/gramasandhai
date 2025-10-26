@@ -102,5 +102,10 @@
             android:exported="false"
             android:theme="@style/Theme.Gramasandhai.NoActionBar" />
 
+        <activity
+            android:name=".Activity.AddVariantActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Gramasandhai.NoActionBar" />
+
     </application>
 </manifest>

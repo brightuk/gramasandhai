@@ -756,12 +756,28 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private void submitProductForm() {
+        // First validate the main form
         if (!validateMainForm()) {
             return;
         }
 
-        // Only validate variants if "Yes" is selected
-        if (radioVariantYes.isChecked() && !validateVariants()) {
+        // Get variant control selection
+        int selectedVariantId = radioVariantControl.getCheckedRadioButtonId();
+
+        if (selectedVariantId == R.id.radioVariantYes) {
+            // If variants are enabled, validate them
+            if (!validateVariants()) {
+                return;
+            }
+        } else if (selectedVariantId == R.id.radioVariantNo) {
+            // If variants are disabled, make sure no variants are added
+            if (!variantViews.isEmpty()) {
+                Toast.makeText(this, "Please remove all variants or enable variants", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        } else {
+            // This should not happen due to validation, but just in case
+            Toast.makeText(this, "Please select variant option", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -792,11 +808,16 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
-        // Validate variant control selection
+        // Enhanced variant control validation
         if (radioVariantControl.getCheckedRadioButtonId() == -1) {
             Toast.makeText(this, "Please select if you want to add variants", Toast.LENGTH_SHORT).show();
             return false;
         }
+
+        // Get the selected variant control value for later use
+        int selectedVariantControlId = radioVariantControl.getCheckedRadioButtonId();
+        RadioButton selectedVariantRadio = findViewById(selectedVariantControlId);
+        String variantControlValue = selectedVariantRadio.getText().toString();
 
         if (spinnerCategory.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select category", Toast.LENGTH_SHORT).show();
@@ -857,18 +878,20 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private boolean validateVariants() {
-        // If variants are disabled, no need to validate
+        // Check if variants are enabled
         if (!radioVariantYes.isChecked()) {
-            return true;
+            return true; // No need to validate if variants are disabled
         }
 
         // Check if at least one variant is added when "Yes" is selected
         if (variantViews.isEmpty()) {
-            Toast.makeText(this, "Please add at least one variant", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please add at least one variant when variants are enabled", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        for (View variantView : variantViews) {
+        // Validate each variant
+        for (int i = 0; i < variantViews.size(); i++) {
+            View variantView = variantViews.get(i);
             TextInputEditText etVariantMeasurement = variantView.findViewById(R.id.etVariantMeasurement);
             TextInputEditText etVariantPrice = variantView.findViewById(R.id.etVariantPrice);
             TextInputEditText etVariantSKU = variantView.findViewById(R.id.etVariantSKU);
@@ -881,47 +904,34 @@ public class AddProductActivity extends AppCompatActivity {
             Spinner spinnerVariantStatus = variantView.findViewById(R.id.spinnerVariantStatus);
 
             if (etVariantMeasurement.getText().toString().trim().isEmpty()) {
-                etVariantMeasurement.setError("Measurement is required");
+                etVariantMeasurement.setError("Measurement is required for variant " + (i + 1));
                 return false;
             }
 
             if (spinnerVariantMeasurementUnit.getSelectedItemPosition() == 0) {
-                Toast.makeText(this, "Please select measurement unit for variant", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please select measurement unit for variant " + (i + 1), Toast.LENGTH_SHORT).show();
                 return false;
             }
 
             if (etVariantPrice.getText().toString().trim().isEmpty()) {
-                etVariantPrice.setError("Price is required");
+                etVariantPrice.setError("Price is required for variant " + (i + 1));
                 return false;
             }
 
-//            if (etVariantSKU.getText().toString().trim().isEmpty()) {
-//                etVariantSKU.setError("SKU is required");
-//                return false;
-//            }
-//
-//            if (etVariantHSNCode.getText().toString().trim().isEmpty()) {
-//                etVariantHSNCode.setError("HSN Code is required");
-//                return false;
-//            }
-//
-//            if (etVariantStock.getText().toString().trim().isEmpty()) {
-//                etVariantStock.setError("Stock is required");
-//                return false;
-//            }
+            // Add other validations as needed...
 
             if (spinnerVariantStockUnit.getSelectedItemPosition() == 0) {
-                Toast.makeText(this, "Please select stock unit for variant", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please select stock unit for variant " + (i + 1), Toast.LENGTH_SHORT).show();
                 return false;
             }
 
             if (spinnerVariantDiscountType.getSelectedItemPosition() == 0) {
-                Toast.makeText(this, "Please select discount type for variant", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please select discount type for variant " + (i + 1), Toast.LENGTH_SHORT).show();
                 return false;
             }
 
             if (spinnerVariantStatus.getSelectedItemPosition() == 0) {
-                Toast.makeText(this, "Please select status for variant", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please select status for variant " + (i + 1), Toast.LENGTH_SHORT).show();
                 return false;
             }
         }
@@ -990,6 +1000,9 @@ public class AddProductActivity extends AppCompatActivity {
                     .addFormDataPart("discount_type", discountType)
                     .addFormDataPart("discount_price", discountPrice)
                     .addFormDataPart("status", status);
+            // Add variant control parameter
+            String variantControl = radioVariantYes.isChecked() ? "1" : "0";
+            multipartBuilder.addFormDataPart("is_variant", variantControl);
 
             // Add main image
             if (productImageUri != null) {

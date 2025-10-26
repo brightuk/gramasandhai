@@ -2,11 +2,10 @@ package com.shop.gramasandhai.Activity;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -15,13 +14,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.shop.gramasandhai.Adapter.VariantAdapter;
 import com.shop.gramasandhai.Attributes.Attributes;
@@ -54,6 +54,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private RecyclerView rvVariants;
     private RatingBar ratingBar;
     private ImageView ivProductImage;
+    private ExtendedFloatingActionButton fabAddVariant;
 
     private ProgressBar progressBar;
 
@@ -76,32 +77,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
     private OkHttpClient client;
 
-
-
-//    private final Handler handler = new Handler();
-//    private final Runnable refreshRunnable = new Runnable() {
-//        @Override
-//        public void run() {
-//            Intent intent = getIntent();
-//            productId = getIntent().getStringExtra("prod_id");
-//
-//            loadProductDataFromAPI();
-//
-//            handler.postDelayed(this, 10000); // repeat every 30 seconds
-//        }
-//    };
-//
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        handler.post(refreshRunnable);  // Start polling
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        handler.removeCallbacks(refreshRunnable);  // Stop polling
-//    }
+    private static final String TAG = "ProductViewActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,6 +111,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         ratingBar = findViewById(R.id.ratingBar);
         tvRating = findViewById(R.id.tvRating);
         progressBar = findViewById(R.id.progressBar);
+        fabAddVariant = findViewById(R.id.fabAddVariant);
 
         // Stats views
         tvVariantsCount = findViewById(R.id.tvVariantsCount);
@@ -194,8 +171,10 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
         // Retry button
         btnRetry.setOnClickListener(v -> loadProductDataFromAPI());
-    }
 
+        // Add Variant FAB
+        fabAddVariant.setOnClickListener(v -> showAddVariantDialog());
+    }
 
     private void updateStatusBadge(boolean isActive) {
         if (isActive) {
@@ -301,6 +280,31 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         } catch (Exception e) {
             Log.e("PROCESS_ERROR", "Error processing product data: " + e.getMessage());
             Toast.makeText(this, "Error displaying product data", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Add this method to ProductViewActivity
+    private void showAddVariantDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add Variant");
+        builder.setMessage("Do you want to add a new variant to this product?");
+        builder.setPositiveButton("Add Variant", (dialog, which) -> {
+            Intent intent = new Intent(ProductViewActivity.this, AddVariantActivity.class);
+            intent.putExtra("product_id", productId);
+            startActivityForResult(intent, 1001);
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    // Handle the result when returning from AddVariantActivity
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == RESULT_OK) {
+            // Refresh the product data to show the new variant
+            loadProductDataFromAPI();
+            Toast.makeText(this, "Variant added successfully!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -605,6 +609,26 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             new android.os.Handler().postDelayed(() -> {
                 isUpdatingProductStatus = false;
             }, 500);
+        }
+    }
+
+    // Helper methods for discount type and status conversion
+    private String getDiscountTypeValue(String displayValue) {
+        switch (displayValue) {
+            case "No Discount": return "0";
+            case "Flat": return "1";
+            case "Percentage": return "2";
+            default: return "0";
+        }
+    }
+
+    private String getStatusValue(String displayValue) {
+        switch (displayValue) {
+            case "Available": return "1";
+            case "Unavailable": return "0";
+            case "Out of Stock": return "2";
+            case "Discontinued": return "3";
+            default: return "1";
         }
     }
 

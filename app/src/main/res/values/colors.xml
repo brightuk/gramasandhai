@@ -193,6 +193,8 @@
     <color name="status_completed">#4CAF50</color>
     <color name="status_cancelled">#F44336</color>
 
+    <color name="icon_tint">#718096</color>
+
     <!-- Background Colors -->
     <color name="order_card_background">@android:color/white</color>
     <color name="order_screen_background">#F5F7FA</color>
