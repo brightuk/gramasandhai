@@ -323,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
         // Quick Actions Click Listeners
         setupCardClickListener(R.id.card_products, ProductManageActivity.class);
         setupCardClickListener(R.id.card_orders, OrdersManageActivity.class); // Replace with your actual Orders activity
-//        setupCardClickListener(R.id.card_inventory, InventoryActivity.class); // Replace with your actual Inventory activity
+        setupCardClickListener(R.id.card_inventory, ReportViewActivity.class); // Replace with your actual Inventory activity
 
         // Add more cards as needed
         // setupCardClickListener(R.id.card_customers, CustomersActivity.class);
