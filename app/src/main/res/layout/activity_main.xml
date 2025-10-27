@@ -453,6 +453,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#2196F3"
                         android:orientation="vertical"
                         android:padding="16dp">
 
@@ -461,7 +462,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="48"
-                            android:textColor="@color/primary_color"
+                            android:textColor="@color/white"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -470,7 +471,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Orders Today"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/white"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -482,7 +483,6 @@
                     android:layout_height="80dp"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
@@ -515,7 +515,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="+5 new orders"
-                            android:textColor="@color/success_green"
+                            android:textColor="@color/white"
                             android:textSize="10sp" />
 
                     </LinearLayout>
@@ -541,7 +541,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="#FAC124"
+                        android:background="#FF9800"
                         android:orientation="vertical"
                         android:padding="16dp">
 
@@ -550,7 +550,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="20"
-                            android:textColor="@color/black"
+                            android:textColor="@color/white"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -559,8 +559,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Pending Orders"
-                            android:textColor="@color/black"
-
+                            android:textColor="@color/white"
                             android:textSize="12sp" />
 
                         <TextView
@@ -568,7 +567,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="+12% from yesterday"
-                            android:textColor="@color/success_green"
+                            android:textColor="@color/black"
                             android:textSize="10sp" />
 
                     </LinearLayout>
@@ -586,6 +585,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#FF6B6B"
                         android:orientation="vertical"
                         android:padding="16dp">
 
@@ -594,7 +594,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="48"
-                            android:textColor="@color/primary_color"
+                            android:textColor="@color/white"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -603,7 +603,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Completed"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/white"
                             android:textSize="12sp" />
 
                         <TextView
@@ -611,7 +611,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="+5 new orders"
-                            android:textColor="@color/success_green"
+                            android:textColor="@color/white"
                             android:textSize="10sp" />
 
                     </LinearLayout>
