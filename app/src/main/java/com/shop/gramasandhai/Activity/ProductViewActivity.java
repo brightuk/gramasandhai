@@ -240,6 +240,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
     private void showLoadingState() {
         progressBar.setVisibility(View.VISIBLE);
+        fabAddVariant.setVisibility(View.GONE);
         contentLayout.setVisibility(View.GONE);
         errorLayout.setVisibility(View.GONE);
     }
@@ -247,6 +248,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private void showContentState() {
         progressBar.setVisibility(View.GONE);
         contentLayout.setVisibility(View.VISIBLE);
+        fabAddVariant.setVisibility(View.VISIBLE);
         errorLayout.setVisibility(View.GONE);
     }
 

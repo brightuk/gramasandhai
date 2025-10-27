@@ -4,7 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-
     android:background="@drawable/background_gradient">
 
     <!-- Progress Bar Overlay -->
@@ -12,8 +11,7 @@
         android:id="@+id/progressOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"
-       >
+        android:visibility="gone">
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -62,35 +60,6 @@
         android:padding="16dp"
         android:orientation="vertical">
 
-<!--        &lt;!&ndash; Header &ndash;&gt;-->
-<!--        <LinearLayout-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:orientation="horizontal"-->
-<!--            android:gravity="center_vertical"-->
-<!--            android:layout_marginBottom="20dp">-->
-
-<!--            <ImageView-->
-<!--                android:layout_width="24dp"-->
-<!--                android:layout_height="24dp"-->
-<!--                android:src="@drawable/ic_arrow_back"-->
-<!--                android:layout_marginEnd="12dp"-->
-<!--                app:tint="#2c3e50" />-->
-
-<!--            <TextView-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_weight="1"-->
-<!--                android:text="Add New Product"-->
-<!--                android:textSize="24sp"-->
-<!--                android:textStyle="bold"-->
-<!--                android:textColor="#2c3e50" />-->
-
-<!--            <View-->
-<!--                android:layout_width="24dp"-->
-<!--                android:layout_height="24dp" />-->
-<!--        </LinearLayout>-->
-
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -103,7 +72,6 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- Basic Information Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -260,6 +228,7 @@
                             app:hintTextColor="#7f8c8d"
                             app:hintEnabled="false"
 
+
                             app:startIconTint="#7f8c8d">
 
                             <Spinner
@@ -354,8 +323,7 @@
                                     android:layout_height="48dp"
                                     android:background="@drawable/spinner_background1"
 
-                                    android:paddingStart="0dp"
-                                    android:paddingEnd="0dp" />
+                                    />
                             </com.google.android.material.textfield.TextInputLayout>
                         </LinearLayout>
 
@@ -486,6 +454,7 @@
                                 app:boxCornerRadiusBottomEnd="8dp"
                                 app:boxCornerRadiusBottomStart="8dp"
                                 app:boxCornerRadiusTopEnd="8dp"
+                                android:paddingTop="10dp"
                                 app:boxCornerRadiusTopStart="8dp"
                                 app:boxStrokeColor="#bdc3c7"
                                 app:hintTextColor="#7f8c8d">
@@ -501,6 +470,7 @@
                                     android:layout_width="match_parent"
                                     android:background="@drawable/spinner_background1"
                                     android:layout_height="48dp"
+                                    android:layout_marginTop="5dp"
                                     android:paddingStart="0dp"
                                     android:paddingEnd="0dp" />
                             </com.google.android.material.textfield.TextInputLayout>
@@ -512,6 +482,7 @@
                                 app:boxCornerRadiusBottomEnd="8dp"
                                 app:boxCornerRadiusBottomStart="8dp"
                                 app:boxCornerRadiusTopEnd="8dp"
+                                android:layout_marginTop="10dp"
                                 app:boxCornerRadiusTopStart="8dp"
                                 app:boxStrokeColor="#bdc3c7"
                                 app:hintTextColor="#7f8c8d">
@@ -519,6 +490,7 @@
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
+
                                     android:textColor="@android:color/black"
                                     android:text="select Product Status"/>
 
@@ -526,6 +498,7 @@
                                     android:id="@+id/spinnerStatus"
                                     android:layout_width="match_parent"
                                     android:layout_height="48dp"
+                                    android:layout_marginTop="5dp"
                                     android:background="@drawable/spinner_background1"
                                     android:paddingStart="0dp"
                                     android:paddingEnd="0dp" />
@@ -541,7 +514,7 @@
                             <!-- Discount Price -->
                             <com.google.android.material.textfield.TextInputLayout
                                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginEnd="8dp"
@@ -565,10 +538,11 @@
 
                             <com.google.android.material.textfield.TextInputLayout
                                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 app:boxCornerRadiusBottomEnd="8dp"
+                                android:layout_gravity="center"
                                 app:boxCornerRadiusBottomStart="8dp"
                                 app:boxCornerRadiusTopEnd="8dp"
                                 app:boxCornerRadiusTopStart="8dp"
@@ -579,10 +553,10 @@
                                 <Spinner
                                     android:id="@+id/spinnerDiscountType"
                                     android:layout_width="match_parent"
-                                    android:layout_height="48dp"
+                                    android:layout_height="52dp"
                                     android:background="@drawable/spinner_background1"
-                                    android:paddingStart="0dp"
-                                    android:paddingEnd="0dp" />
+
+                                    />
                             </com.google.android.material.textfield.TextInputLayout>
                         </LinearLayout>
 
@@ -826,6 +800,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <!-- Product Image Card -->
+                <!-- Product Image Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -867,7 +842,7 @@
                                 android:visibility="gone"
                                 android:scaleType="centerCrop"
                                 android:background="@drawable/image_placeholder_bg"
-                                android:contentDescription="Product image preview" />
+                                android:contentDescription="Product image preview"/>
 
                             <TextView
                                 android:id="@+id/tvNoImage"
@@ -960,6 +935,7 @@
 
                 <!-- Variants Section Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardVariantsSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"

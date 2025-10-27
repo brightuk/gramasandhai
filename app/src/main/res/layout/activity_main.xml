@@ -482,12 +482,14 @@
                     android:layout_height="80dp"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
+
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#00AF00"
                         android:orientation="vertical"
                         android:padding="16dp">
 
@@ -496,7 +498,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="₹12,458"
-                            android:textColor="@color/primary_color"
+                            android:textColor="@color/white"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -505,7 +507,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Today's Revenue"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/white"
                             android:textSize="12sp" />
 
                         <TextView
@@ -539,6 +541,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#FAC124"
                         android:orientation="vertical"
                         android:padding="16dp">
 
@@ -547,7 +550,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="20"
-                            android:textColor="@color/primary_color"
+                            android:textColor="@color/black"
                             android:textSize="20sp"
                             android:textStyle="bold" />
 
@@ -556,7 +559,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Pending Orders"
-                            android:textColor="@color/text_secondary"
+                            android:textColor="@color/black"
+
                             android:textSize="12sp" />
 
                         <TextView

@@ -49,9 +49,13 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class AddVariantActivity extends AppCompatActivity {
 
@@ -96,6 +100,24 @@ public class AddVariantActivity extends AppCompatActivity {
         setupToolbar();
         setupSpinners();
         setupClickListeners();
+
+        // Check for drafts and offer to load
+        checkForExistingDrafts();
+    }
+
+    private void checkForExistingDrafts() {
+        SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+        String draftListKey = "drafts_for_product_" + productId;
+        String existingDrafts = prefs.getString(draftListKey, "");
+
+        if (!existingDrafts.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Found Saved Drafts")
+                    .setMessage("You have saved drafts for this product. Would you like to load one?")
+                    .setPositiveButton("View Drafts", (dialog, which) -> showDraftsList())
+                    .setNegativeButton("Start New", null)
+                    .show();
+        }
     }
 
     private void initializeViews() {
@@ -159,6 +181,12 @@ public class AddVariantActivity extends AppCompatActivity {
         if (id == R.id.action_save_draft) {
             saveAsDraft();
             return true;
+        } else if (id == R.id.action_load_draft) {
+            showDraftsList();
+            return true;
+        } else if (id == R.id.action_delete_drafts) {
+            showBulkDeleteOptions();
+            return true;
         } else if (id == R.id.action_help) {
             showHelpDialog();
             return true;
@@ -168,7 +196,500 @@ public class AddVariantActivity extends AppCompatActivity {
     }
 
     private void saveAsDraft() {
-        Toast.makeText(this, "Draft saved successfully", Toast.LENGTH_SHORT).show();
+        if (!validateDraftData()) {
+            return;
+        }
+
+        try {
+            JSONObject draftData = collectFormData();
+
+            // Generate a unique draft ID
+            String draftId = "variant_draft_" + System.currentTimeMillis();
+
+            // Save to SharedPreferences
+            SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            // Save the draft data
+            editor.putString(draftId, draftData.toString());
+
+            // Also save a list of draft IDs for this product
+            String draftListKey = "drafts_for_product_" + productId;
+            String existingDrafts = prefs.getString(draftListKey, "");
+            Set<String> draftSet = new HashSet<>();
+            if (!existingDrafts.isEmpty()) {
+                String[] draftsArray = existingDrafts.split(",");
+                Collections.addAll(draftSet, draftsArray);
+            }
+            draftSet.add(draftId);
+
+            String updatedDrafts = String.join(",", draftSet);
+            editor.putString(draftListKey, updatedDrafts);
+
+            // Save timestamp
+            editor.putLong(draftId + "_timestamp", System.currentTimeMillis());
+
+            if (editor.commit()) {
+                showDraftSuccessDialog(draftId);
+            } else {
+                Toast.makeText(this, "Failed to save draft", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving draft: " + e.getMessage(), e);
+            Toast.makeText(this, "Error saving draft", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private JSONObject collectFormData() throws JSONException {
+        JSONObject draftData = new JSONObject();
+
+        // Basic product info
+        draftData.put("product_id", productId);
+        draftData.put("created_at", System.currentTimeMillis());
+
+        // Form fields
+        draftData.put("measurement", etVariantMeasurement.getText().toString().trim());
+        draftData.put("measurement_unit_position", spinnerVariantMeasurementUnit.getSelectedItemPosition());
+        draftData.put("price", etVariantPrice.getText().toString().trim());
+        draftData.put("sku", etVariantSKU.getText().toString().trim());
+        draftData.put("hsn_code", etVariantHSNCode.getText().toString().trim());
+        draftData.put("stock", etVariantStock.getText().toString().trim());
+        draftData.put("stock_unit_position", spinnerVariantStockUnit.getSelectedItemPosition());
+        draftData.put("discount_price", etVariantDiscountPrice.getText().toString().trim());
+        draftData.put("discount_type_position", spinnerVariantDiscountType.getSelectedItemPosition());
+        draftData.put("status_position", spinnerVariantStatus.getSelectedItemPosition());
+
+        // Image handling - IMPROVED: Save both path and URI
+        if (variantImageUri != null) {
+            try {
+                // Always save the URI string for reference
+                draftData.put("image_uri", variantImageUri.toString());
+
+                // Save the file path for camera images
+                if (currentPhotoPath != null) {
+                    draftData.put("image_path", currentPhotoPath);
+                    Log.d(TAG, "Saved camera image path: " + currentPhotoPath);
+                } else {
+                    // For gallery images, try to get and save the path
+                    String imagePath = getRealPathFromURI(variantImageUri);
+                    if (imagePath != null) {
+                        draftData.put("image_path", imagePath);
+                    }
+                }
+                Log.d(TAG, "Saved image URI: " + variantImageUri.toString());
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error saving image data to draft: " + e.getMessage());
+            }
+        }
+
+        return draftData;
+    }
+
+    private boolean validateDraftData() {
+        // For drafts, we can be more lenient than final submission
+        // But we should at least require basic information
+
+        String measurement = etVariantMeasurement.getText().toString().trim();
+        String price = etVariantPrice.getText().toString().trim();
+
+        if (measurement.isEmpty() && price.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Empty Draft")
+                    .setMessage("You haven't entered any variant information. Do you want to save an empty draft?")
+                    .setPositiveButton("Save Anyway", (dialog, which) -> {
+                        // Continue with empty draft
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void showDraftSuccessDialog(String draftId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Draft Saved")
+                .setMessage("Your variant has been saved as draft. You can continue editing later from the drafts section.")
+                .setPositiveButton("Continue Editing", null)
+                .setNegativeButton("Exit", (dialog, which) -> finish())
+                .setNeutralButton("View Drafts", (dialog, which) -> showDraftsList())
+                .show();
+    }
+
+    // Method to load a saved draft - FIXED VERSION
+// Method to load a saved draft - FIXED VERSION
+    private void loadDraft(String draftId) {
+        try {
+            SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+            String draftJson = prefs.getString(draftId, "");
+
+            if (draftJson == null || draftJson.isEmpty()) {
+                Toast.makeText(this, "Draft not found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            JSONObject draftData = new JSONObject(draftJson);
+
+            // Restore form fields
+            etVariantMeasurement.setText(draftData.optString("measurement", ""));
+            etVariantPrice.setText(draftData.optString("price", ""));
+            etVariantSKU.setText(draftData.optString("sku", ""));
+            etVariantHSNCode.setText(draftData.optString("hsn_code", ""));
+            etVariantStock.setText(draftData.optString("stock", ""));
+            etVariantDiscountPrice.setText(draftData.optString("discount_price", ""));
+
+            // Restore spinner positions
+            safeSetSpinnerSelection(spinnerVariantMeasurementUnit, draftData.optInt("measurement_unit_position", 0));
+            safeSetSpinnerSelection(spinnerVariantStockUnit, draftData.optInt("stock_unit_position", 0));
+            safeSetSpinnerSelection(spinnerVariantDiscountType, draftData.optInt("discount_type_position", 0));
+            safeSetSpinnerSelection(spinnerVariantStatus, draftData.optInt("status_position", 0));
+
+            // Handle image loading - FIXED VERSION
+            boolean imageLoaded = false;
+
+            if (draftData.has("image_path")) {
+                String imagePath = draftData.getString("image_path");
+                Log.d(TAG, "Loading image from path: " + imagePath);
+                if (imagePath != null && !imagePath.isEmpty()) {
+                    File imageFile = new File(imagePath);
+                    if (imageFile.exists()) {
+                        try {
+                            // Try multiple approaches to load the image
+                            variantImageUri = Uri.fromFile(imageFile); // Try direct file URI first
+                            if (variantImageUri != null) {
+                                displaySelectedImage();
+                                Toast.makeText(this, "Saved image loaded", Toast.LENGTH_SHORT).show();
+                                imageLoaded = true;
+                            } else {
+                                Log.e(TAG, "Failed to create URI from file path");
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error loading image from path: " + e.getMessage());
+                        }
+                    } else {
+                        Log.e(TAG, "Image file not found at path: " + imagePath);
+                    }
+                }
+            }
+
+            // If path loading failed, try URI
+            if (!imageLoaded && draftData.has("image_uri")) {
+                // For gallery images, try to load from URI
+                String imageUriString = draftData.getString("image_uri");
+                Log.d(TAG, "Loading image from URI: " + imageUriString);
+                try {
+                    variantImageUri = Uri.parse(imageUriString);
+                    if (variantImageUri != null) {
+                        // Check if URI is still accessible
+                        try {
+                            getContentResolver().openInputStream(variantImageUri).close();
+                            displaySelectedImage();
+                            Toast.makeText(this, "Saved image loaded from gallery", Toast.LENGTH_SHORT).show();
+                            imageLoaded = true;
+                        } catch (Exception e) {
+                            Log.e(TAG, "Gallery image URI no longer accessible: " + e.getMessage());
+                            Toast.makeText(this, "Gallery image no longer available. Please reselect.", Toast.LENGTH_LONG).show();
+                            variantImageUri = null;
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing image URI: " + e.getMessage());
+                }
+            }
+
+            // If both methods failed, show appropriate message
+            if (!imageLoaded) {
+                Log.d(TAG, "No image could be loaded from draft");
+                // Don't show error toast here as it might be normal for drafts without images
+            }
+
+            Toast.makeText(this, "Draft loaded successfully", Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading draft: " + e.getMessage(), e);
+            Toast.makeText(this, "Error loading draft: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+    // Helper method to safely set spinner selection
+    private void safeSetSpinnerSelection(Spinner spinner, int position) {
+        try {
+            if (spinner != null && position >= 0 && position < spinner.getCount()) {
+                spinner.setSelection(position);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting spinner selection: " + e.getMessage());
+        }
+    }
+
+    // Method to show list of drafts for this product
+    private void showDraftsList() {
+        SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+        String draftListKey = "drafts_for_product_" + productId;
+        String existingDrafts = prefs.getString(draftListKey, "");
+
+        if (existingDrafts.isEmpty()) {
+            Toast.makeText(this, "No drafts found for this product", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] draftIds = existingDrafts.split(",");
+        List<DraftItem> draftItems = new ArrayList<>();
+
+        for (String draftId : draftIds) {
+            String draftJson = prefs.getString(draftId, "");
+            if (!draftJson.isEmpty()) {
+                try {
+                    JSONObject draftData = new JSONObject(draftJson);
+                    String measurement = draftData.optString("measurement", "No measurement");
+                    String price = draftData.optString("price", "No price");
+                    long timestamp = draftData.optLong("created_at", System.currentTimeMillis());
+
+                    String time = new SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+                            .format(new Date(timestamp));
+
+                    draftItems.add(new DraftItem(draftId, measurement + " - " + price + " (" + time + ")"));
+
+                } catch (JSONException e) {
+                    Log.e(TAG, "Error parsing draft: " + e.getMessage());
+                }
+            }
+        }
+
+        if (draftItems.isEmpty()) {
+            Toast.makeText(this, "No valid drafts found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Create array of display strings
+        String[] draftDisplayItems = new String[draftItems.size()];
+        for (int i = 0; i < draftItems.size(); i++) {
+            draftDisplayItems[i] = draftItems.get(i).displayText;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Saved Drafts")
+                .setItems(draftDisplayItems, (dialog, which) -> {
+                    DraftItem selectedDraft = draftItems.get(which);
+                    showDraftOptions(selectedDraft.draftId);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // Helper class for draft items
+    private static class DraftItem {
+        String draftId;
+        String displayText;
+
+        DraftItem(String draftId, String displayText) {
+            this.draftId = draftId;
+            this.displayText = displayText;
+        }
+    }
+
+    private void showDraftOptions(String draftId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Draft Options")
+                .setItems(new CharSequence[]{"Load Draft", "Delete Draft", "Cancel"}, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Load
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Load Draft")
+                                    .setMessage("This will replace your current form data. Continue?")
+                                    .setPositiveButton("Load", (d, w) -> loadDraft(draftId))
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
+                            break;
+                        case 1: // Delete
+                            showDeleteConfirmation(draftId);
+                            break;
+                        case 2: // Cancel
+                            // Do nothing
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void showDeleteConfirmation(String draftId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Draft")
+                .setMessage("Are you sure you want to delete this draft? This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteDraft(draftId))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteDraft(String draftId) {
+        try {
+            SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            // Remove the draft data
+            editor.remove(draftId);
+
+            // Remove the timestamp
+            editor.remove(draftId + "_timestamp");
+
+            // Remove from product draft list
+            String draftListKey = "drafts_for_product_" + productId;
+            String existingDrafts = prefs.getString(draftListKey, "");
+            if (!existingDrafts.isEmpty()) {
+                Set<String> draftSet = new HashSet<>();
+                Collections.addAll(draftSet, existingDrafts.split(","));
+                draftSet.remove(draftId);
+
+                String updatedDrafts = String.join(",", draftSet);
+                if (updatedDrafts.isEmpty()) {
+                    editor.remove(draftListKey);
+                } else {
+                    editor.putString(draftListKey, updatedDrafts);
+                }
+            }
+
+            if (editor.commit()) {
+                Toast.makeText(this, "Draft deleted successfully", Toast.LENGTH_SHORT).show();
+                // Optionally refresh the drafts list
+                showDraftsList();
+            } else {
+                Toast.makeText(this, "Failed to delete draft", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error deleting draft: " + e.getMessage(), e);
+            Toast.makeText(this, "Error deleting draft", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showBulkDeleteOptions() {
+        SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+        String draftListKey = "drafts_for_product_" + productId;
+        String existingDrafts = prefs.getString(draftListKey, "");
+
+        if (existingDrafts.isEmpty()) {
+            Toast.makeText(this, "No drafts found for this product", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Drafts")
+                .setItems(new CharSequence[]{
+                        "Delete All Drafts for This Product",
+                        "Delete Old Drafts (older than 1 week)",
+                        "Cancel"
+                }, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            showDeleteAllConfirmation();
+                            break;
+                        case 1:
+                            deleteOldDrafts();
+                            break;
+                        case 2:
+                            // Cancel
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void showDeleteAllConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete All Drafts")
+                .setMessage("Are you sure you want to delete ALL drafts for this product? This action cannot be undone.")
+                .setPositiveButton("Delete All", (dialog, which) -> deleteAllDrafts())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteAllDrafts() {
+        try {
+            SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            String draftListKey = "drafts_for_product_" + productId;
+            String existingDrafts = prefs.getString(draftListKey, "");
+
+            if (!existingDrafts.isEmpty()) {
+                String[] draftIds = existingDrafts.split(",");
+                int deletedCount = 0;
+
+                for (String draftId : draftIds) {
+                    editor.remove(draftId);
+                    editor.remove(draftId + "_timestamp");
+                    deletedCount++;
+                }
+
+                editor.remove(draftListKey);
+
+                if (editor.commit()) {
+                    Toast.makeText(this, "Deleted " + deletedCount + " draft(s)", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Failed to delete drafts", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "No drafts found to delete", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error deleting all drafts: " + e.getMessage(), e);
+            Toast.makeText(this, "Error deleting drafts", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void deleteOldDrafts() {
+        int deletedCount = clearOldDrafts();
+        if (deletedCount > 0) {
+            Toast.makeText(this, "Deleted " + deletedCount + " old draft(s)", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "No old drafts found", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Method to clear old drafts (optional cleanup)
+    private int clearOldDrafts() {
+        SharedPreferences prefs = getSharedPreferences("VariantDrafts", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        long oneWeekAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000); // 1 week ago
+        int deletedCount = 0;
+
+        // Get all keys
+        Map<String, ?> allEntries = prefs.getAll();
+        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            if (entry.getKey().endsWith("_timestamp")) {
+                long timestamp = prefs.getLong(entry.getKey(), 0);
+                if (timestamp < oneWeekAgo) {
+                    String draftId = entry.getKey().replace("_timestamp", "");
+                    editor.remove(draftId);
+                    editor.remove(entry.getKey());
+                    deletedCount++;
+
+                    // Also remove from product draft lists
+                    for (String key : allEntries.keySet()) {
+                        if (key.startsWith("drafts_for_product_")) {
+                            String drafts = prefs.getString(key, "");
+                            if (drafts.contains(draftId)) {
+                                String updatedDrafts = drafts.replace(draftId, "")
+                                        .replace(",,", ",")
+                                        .replaceAll("^,|,$", "");
+                                if (updatedDrafts.isEmpty()) {
+                                    editor.remove(key);
+                                } else {
+                                    editor.putString(key, updatedDrafts);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        editor.apply();
+        return deletedCount;
     }
 
     private void showHelpDialog() {
@@ -234,6 +755,7 @@ public class AddVariantActivity extends AppCompatActivity {
 
     private void removeSelectedImage() {
         variantImageUri = null;
+        currentPhotoPath = null;
         ivVariantImagePreview.setVisibility(View.GONE);
         uploadPlaceholder.setVisibility(View.VISIBLE);
         fabRemoveImage.setVisibility(View.GONE);
@@ -391,11 +913,30 @@ public class AddVariantActivity extends AppCompatActivity {
 
     private void displaySelectedImage() {
         if (variantImageUri != null) {
-            ivVariantImagePreview.setImageURI(variantImageUri);
-            ivVariantImagePreview.setVisibility(View.VISIBLE);
-            uploadPlaceholder.setVisibility(View.GONE);
-            fabRemoveImage.setVisibility(View.VISIBLE);
-            Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
+            try {
+                ivVariantImagePreview.setImageURI(variantImageUri);
+                ivVariantImagePreview.setVisibility(View.VISIBLE);
+                uploadPlaceholder.setVisibility(View.GONE);
+                fabRemoveImage.setVisibility(View.VISIBLE);
+
+                // Force image view to redraw
+                ivVariantImagePreview.invalidate();
+
+                Log.d(TAG, "Image displayed successfully: " + variantImageUri.toString());
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error displaying selected image: " + e.getMessage());
+                Toast.makeText(this, "Error displaying image", Toast.LENGTH_SHORT).show();
+                // Reset image state on error
+                variantImageUri = null;
+                ivVariantImagePreview.setVisibility(View.GONE);
+                uploadPlaceholder.setVisibility(View.VISIBLE);
+                fabRemoveImage.setVisibility(View.GONE);
+            }
+        } else {
+            ivVariantImagePreview.setVisibility(View.GONE);
+            uploadPlaceholder.setVisibility(View.VISIBLE);
+            fabRemoveImage.setVisibility(View.GONE);
         }
     }
 
@@ -544,14 +1085,16 @@ public class AddVariantActivity extends AppCompatActivity {
 
             // Add variant image if exists
             if (variantImageUri != null) {
-                String imagePath = getRealPathFromURI(variantImageUri);
-                if (imagePath != null) {
-                    File imageFile = new File(imagePath);
-                    if (imageFile.exists()) {
-                        multipartBuilder.addFormDataPart("variant_image[]",
-                                imageFile.getName(),
-                                RequestBody.create(MediaType.parse("image/*"), imageFile));
-                    }
+                File imageFile = getImageFileFromUri(variantImageUri);
+                if (imageFile != null && imageFile.exists()) {
+                    multipartBuilder.addFormDataPart("variant_image[]",
+                            imageFile.getName(),
+                            RequestBody.create(MediaType.parse("image/*"), imageFile));
+                } else {
+                    Log.e(TAG, "Image file not found or inaccessible: " + variantImageUri);
+                    Toast.makeText(this, "Image file not accessible. Please select image again.", Toast.LENGTH_LONG).show();
+                    hideProgress();
+                    return;
                 }
             }
 
@@ -604,6 +1147,66 @@ public class AddVariantActivity extends AppCompatActivity {
         }
     }
 
+    // Improved method to get image file from URI
+    // Improved method to get image file from URI
+    private File getImageFileFromUri(Uri uri) {
+        if (uri == null) return null;
+
+        try {
+            String scheme = uri.getScheme();
+            Log.d(TAG, "Getting file from URI with scheme: " + scheme);
+
+            if (scheme != null && scheme.equals("file")) {
+                // File URI
+                String path = uri.getPath();
+                Log.d(TAG, "File URI path: " + path);
+                return new File(path);
+            } else if (scheme != null && scheme.equals("content")) {
+                // Content URI - try to get the file path
+                String filePath = getRealPathFromURI(uri);
+                if (filePath != null) {
+                    Log.d(TAG, "Content URI resolved to path: " + filePath);
+                    return new File(filePath);
+                } else {
+                    Log.d(TAG, "Content URI could not be resolved to path, creating temp file");
+                    // For content URIs that we can't resolve, create a temporary file
+                    return createTempFileFromUri(uri);
+                }
+            } else {
+                Log.e(TAG, "Unknown URI scheme: " + scheme);
+                return null;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting image file from URI: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // Create temporary file from content URI
+    private File createTempFileFromUri(Uri uri) {
+        try {
+            android.content.ContentResolver resolver = getContentResolver();
+            java.io.InputStream inputStream = resolver.openInputStream(uri);
+            if (inputStream != null) {
+                File tempFile = File.createTempFile("temp_variant_image", ".jpg", getCacheDir());
+                java.io.FileOutputStream outputStream = new java.io.FileOutputStream(tempFile);
+
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+
+                outputStream.close();
+                inputStream.close();
+                return tempFile;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating temp file from URI: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
     private void showProgress() {
         progressIndicator.setVisibility(View.VISIBLE);
         btnSubmitVariant.setEnabled(false);
@@ -648,22 +1251,30 @@ public class AddVariantActivity extends AppCompatActivity {
     }
 
     private String getRealPathFromURI(Uri contentUri) {
-        String[] proj = {MediaStore.Images.Media.DATA};
+        if (contentUri == null) return null;
+
         Cursor cursor = null;
         try {
+            String[] proj = {MediaStore.Images.Media.DATA};
             cursor = getContentResolver().query(contentUri, proj, null, null, null);
+
             if (cursor != null && cursor.moveToFirst()) {
                 int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                return cursor.getString(column_index);
+                String path = cursor.getString(column_index);
+                Log.d(TAG, "Real path from URI: " + path);
+                return path;
+            } else {
+                Log.d(TAG, "Cursor is null or empty for URI: " + contentUri);
+                return null;
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error getting real path: " + e.getMessage());
+            Log.e(TAG, "Error getting real path from URI: " + e.getMessage());
+            return null;
         } finally {
             if (cursor != null) {
                 cursor.close();
             }
         }
-        return contentUri.getPath();
     }
 
     private String shopId() {

@@ -2,7 +2,6 @@ package com.shop.gramasandhai.Activity;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -14,6 +13,8 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
@@ -37,10 +38,8 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.*;
 
@@ -50,6 +49,10 @@ public class AddProductActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 1;
     private static final int CAMERA_REQUEST = 2;
     private static final int PERMISSION_REQUEST_CODE = 100;
+
+    // Draft constants
+    private static final String DRAFT_PREF_NAME = "ProductDrafts";
+    private static final String DRAFT_LIST_KEY = "product_drafts_list";
 
     // Main form fields
     private TextInputEditText etProductName, etMeasurement, etPrice, etSKU, etHSNCode, etStock, etDiscountPrice;
@@ -61,6 +64,7 @@ public class AddProductActivity extends AppCompatActivity {
     private Button btnSelectImage, btnAddVariant, btnSubmit;
     private LinearLayout containerVariants;
     private ImageView ivProductImagePreview;
+    private TextView tvNoImage;
 
     // Progress bar elements
     private FrameLayout progressOverlay;
@@ -82,6 +86,17 @@ public class AddProductActivity extends AppCompatActivity {
 
     // Additional fields
     private CheckBox cbReturnable, cbCancelable, cbCodAllowed;
+
+    // Draft helper class
+    private static class DraftItem {
+        String draftId;
+        String displayText;
+
+        DraftItem(String draftId, String displayText) {
+            this.draftId = draftId;
+            this.displayText = displayText;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +149,14 @@ public class AddProductActivity extends AppCompatActivity {
         });
     }
 
+    private void hideProgress() {
+        runOnUiThread(() -> {
+            progressOverlay.setVisibility(View.GONE);
+            mainContent.setAlpha(1.0f);
+            mainContent.setEnabled(true);
+        });
+    }
+
     private void setupToolbar() {
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -145,17 +168,32 @@ public class AddProductActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
     }
 
-    private void hideProgress() {
-        runOnUiThread(() -> {
-            progressOverlay.setVisibility(View.GONE);
-            mainContent.setAlpha(1.0f);
-            mainContent.setEnabled(true);
-        });
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_add_product, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_save_draft) {
+            saveAsDraft();
+            return true;
+        } else if (id == R.id.action_load_draft) {
+            showDraftsList();
+            return true;
+        } else if (id == R.id.action_delete_drafts) {
+            showBulkDeleteOptions();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void initializeViews() {
         try {
-
             // Text Input Fields
             etProductName = findViewById(R.id.etProductName);
             etMeasurement = findViewById(R.id.etMeasurement);
@@ -201,6 +239,7 @@ public class AddProductActivity extends AppCompatActivity {
 
             // Image Preview
             ivProductImagePreview = findViewById(R.id.ivProductImagePreview);
+            tvNoImage = findViewById(R.id.tvNoImage);
 
             // Checkboxes
             cbReturnable = findViewById(R.id.cbReturnable);
@@ -222,9 +261,14 @@ public class AddProductActivity extends AppCompatActivity {
     private void loadCategories() {
         Log.d("ShopID", shopId());
 
-        showProgress(); // Show progress when starting
+        showProgress();
 
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build();
+
         Request request = new Request.Builder()
                 .url(Attributes.Main_Url + "shop/" + shopId() + "/addproduct")
                 .get()
@@ -235,7 +279,7 @@ public class AddProductActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    hideProgress(); // Hide progress on failure
+                    hideProgress();
                     Toast.makeText(AddProductActivity.this,
                             "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
@@ -248,7 +292,7 @@ public class AddProductActivity extends AppCompatActivity {
                 Log.d("Categories_RESPONSE", responseBodyString);
 
                 runOnUiThread(() -> {
-                    hideProgress(); // Hide progress on response
+                    hideProgress();
                     try {
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
@@ -468,10 +512,8 @@ public class AddProductActivity extends AppCompatActivity {
         // Variant control radio group listener
         radioVariantControl.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.radioVariantYes) {
-                // Show variant section
                 showVariantSection();
             } else if (checkedId == R.id.radioVariantNo) {
-                // Hide variant section
                 hideVariantSection();
             }
         });
@@ -481,13 +523,27 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private void showVariantSection() {
-        // Find the variants card and show it
-        com.google.android.material.card.MaterialCardView variantsCard = findViewById(R.id.containerVariants)
-                .getParent().getParent() instanceof com.google.android.material.card.MaterialCardView ?
-                (com.google.android.material.card.MaterialCardView) ((View) findViewById(R.id.containerVariants).getParent()).getParent() : null;
-
-        if (variantsCard != null) {
-            variantsCard.setVisibility(View.VISIBLE);
+        try {
+            // Find the variants card by looking for the parent of containerVariants
+            View variantsContainer = findViewById(R.id.containerVariants);
+            if (variantsContainer != null && variantsContainer.getParent() != null) {
+                View variantsCard = (View) variantsContainer.getParent();
+                if (variantsCard.getParent() != null) {
+                    View variantsSection = (View) variantsCard.getParent();
+                    variantsSection.setVisibility(View.VISIBLE);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing variant section: " + e.getMessage());
+            // Fallback: try to find by ID if you added one
+            try {
+                View variantsSection = findViewById(R.id.cardVariantsSection);
+                if (variantsSection != null) {
+                    variantsSection.setVisibility(View.VISIBLE);
+                }
+            } catch (Exception ex) {
+                Log.e(TAG, "Error finding variants section by ID: " + ex.getMessage());
+            }
         }
 
         // Enable add variant button
@@ -496,13 +552,27 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private void hideVariantSection() {
-        // Find the variants card and hide it
-        com.google.android.material.card.MaterialCardView variantsCard = findViewById(R.id.containerVariants)
-                .getParent().getParent() instanceof com.google.android.material.card.MaterialCardView ?
-                (com.google.android.material.card.MaterialCardView) ((View) findViewById(R.id.containerVariants).getParent()).getParent() : null;
-
-        if (variantsCard != null) {
-            variantsCard.setVisibility(View.GONE);
+        try {
+            // Find the variants card by looking for the parent of containerVariants
+            View variantsContainer = findViewById(R.id.containerVariants);
+            if (variantsContainer != null && variantsContainer.getParent() != null) {
+                View variantsCard = (View) variantsContainer.getParent();
+                if (variantsCard.getParent() != null) {
+                    View variantsSection = (View) variantsCard.getParent();
+                    variantsSection.setVisibility(View.GONE);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error hiding variant section: " + e.getMessage());
+            // Fallback: try to find by ID if you added one
+            try {
+                View variantsSection = findViewById(R.id.cardVariantsSection);
+                if (variantsSection != null) {
+                    variantsSection.setVisibility(View.GONE);
+                }
+            } catch (Exception ex) {
+                Log.e(TAG, "Error finding variants section by ID: " + ex.getMessage());
+            }
         }
 
         // Disable add variant button
@@ -665,10 +735,28 @@ public class AddProductActivity extends AppCompatActivity {
 
     private void displaySelectedImage() {
         if (productImageUri != null) {
-            ivProductImagePreview.setImageURI(productImageUri);
-            ivProductImagePreview.setVisibility(View.VISIBLE);
-            btnSelectImage.setText("Change Image");
-            Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+            try {
+                ivProductImagePreview.setImageURI(productImageUri);
+                ivProductImagePreview.setVisibility(View.VISIBLE);
+                tvNoImage.setVisibility(View.GONE);
+                btnSelectImage.setText("Change Image");
+
+                // Force image view to redraw
+                ivProductImagePreview.invalidate();
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error displaying selected image: " + e.getMessage());
+                Toast.makeText(this, "Error displaying image", Toast.LENGTH_SHORT).show();
+                // Reset image state on error
+                productImageUri = null;
+                ivProductImagePreview.setVisibility(View.GONE);
+                tvNoImage.setVisibility(View.VISIBLE);
+                btnSelectImage.setText("Select Product Image");
+            }
+        } else {
+            ivProductImagePreview.setVisibility(View.GONE);
+            tvNoImage.setVisibility(View.VISIBLE);
+            btnSelectImage.setText("Select Product Image");
         }
     }
 
@@ -814,11 +902,6 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
-        // Get the selected variant control value for later use
-        int selectedVariantControlId = radioVariantControl.getCheckedRadioButtonId();
-        RadioButton selectedVariantRadio = findViewById(selectedVariantControlId);
-        String variantControlValue = selectedVariantRadio.getText().toString();
-
         if (spinnerCategory.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select category", Toast.LENGTH_SHORT).show();
             return false;
@@ -918,8 +1001,6 @@ public class AddProductActivity extends AppCompatActivity {
                 return false;
             }
 
-            // Add other validations as needed...
-
             if (spinnerVariantStockUnit.getSelectedItemPosition() == 0) {
                 Toast.makeText(this, "Please select stock unit for variant " + (i + 1), Toast.LENGTH_SHORT).show();
                 return false;
@@ -939,7 +1020,7 @@ public class AddProductActivity extends AppCompatActivity {
     }
 
     private void submitProductToServer() {
-        showProgress(); // Show progress when submitting
+        showProgress();
 
         try {
             // Get main product data
@@ -1006,10 +1087,15 @@ public class AddProductActivity extends AppCompatActivity {
 
             // Add main image
             if (productImageUri != null) {
-                File imageFile = new File(getRealPathFromURI(productImageUri));
-                if (imageFile.exists()) {
+                File imageFile = getImageFileFromUri(productImageUri);
+                if (imageFile != null && imageFile.exists()) {
                     multipartBuilder.addFormDataPart("main_image", imageFile.getName(),
                             RequestBody.create(MediaType.parse("image/*"), imageFile));
+                } else {
+                    Log.e(TAG, "Image file not found or inaccessible: " + productImageUri);
+                    Toast.makeText(this, "Image file not accessible. Please select image again.", Toast.LENGTH_LONG).show();
+                    hideProgress();
+                    return;
                 }
             }
 
@@ -1020,18 +1106,23 @@ public class AddProductActivity extends AppCompatActivity {
 
             RequestBody requestBody = multipartBuilder.build();
 
+            OkHttpClient client = new OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .build();
+
             Request request = new Request.Builder()
                     .url(Attributes.Main_Url + "shop/" + shopId() + "/addproduct")
                     .post(requestBody)
                     .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
                     .build();
 
-            OkHttpClient client = new OkHttpClient();
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     runOnUiThread(() -> {
-                        hideProgress(); // Hide progress on failure
+                        hideProgress();
                         Toast.makeText(AddProductActivity.this, "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         Log.e("SUBMIT_ERROR", "Request failed: " + e.getMessage());
                     });
@@ -1043,7 +1134,7 @@ public class AddProductActivity extends AppCompatActivity {
                     Log.d("SUBMIT_RESPONSE", responseBody);
 
                     runOnUiThread(() -> {
-                        hideProgress(); // Hide progress on response
+                        hideProgress();
                         try {
                             JSONObject jsonResponse = new JSONObject(responseBody);
                             if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
@@ -1062,7 +1153,7 @@ public class AddProductActivity extends AppCompatActivity {
             });
 
         } catch (Exception e) {
-            hideProgress(); // Hide progress on exception
+            hideProgress();
             Log.e(TAG, "Error submitting product: " + e.getMessage(), e);
             Toast.makeText(this, "Error submitting product: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -1160,16 +1251,738 @@ public class AddProductActivity extends AppCompatActivity {
         }
     }
 
-    private String getRealPathFromURI(Uri contentUri) {
-        String[] proj = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
-        if (cursor != null) {
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String path = cursor.getString(column_index);
-            cursor.close();
-            return path;
+    // ==================== DRAFT FUNCTIONALITY ====================
+
+    private void saveAsDraft() {
+        try {
+            if (!validateDraftData()) {
+                return;
+            }
+
+            JSONObject draftData = collectFormData();
+
+            // Generate a unique draft ID
+            String draftId = "product_draft_" + System.currentTimeMillis();
+
+            // Save to SharedPreferences
+            SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            // Save the draft data
+            editor.putString(draftId, draftData.toString());
+
+            // Also save a list of draft IDs
+            String existingDrafts = prefs.getString(DRAFT_LIST_KEY, "");
+            Set<String> draftSet = new HashSet<>();
+            if (!existingDrafts.isEmpty()) {
+                String[] draftsArray = existingDrafts.split(",");
+                Collections.addAll(draftSet, draftsArray);
+            }
+            draftSet.add(draftId);
+
+            String updatedDrafts = String.join(",", draftSet);
+            editor.putString(DRAFT_LIST_KEY, updatedDrafts);
+
+            // Save timestamp
+            editor.putLong(draftId + "_timestamp", System.currentTimeMillis());
+
+            if (editor.commit()) {
+                showDraftSuccessDialog(draftId);
+            } else {
+                Toast.makeText(this, "Failed to save draft", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving draft: " + e.getMessage(), e);
+            Toast.makeText(this, "Error saving draft: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
-        return contentUri.getPath();
+    }
+
+    private boolean validateDraftData() {
+        // For drafts, we can be more lenient than final submission
+        String productName = etProductName.getText().toString().trim();
+        String measurement = etMeasurement.getText().toString().trim();
+        String price = etPrice.getText().toString().trim();
+
+        if (productName.isEmpty() && measurement.isEmpty() && price.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Empty Draft")
+                    .setMessage("You haven't entered any product information. Do you want to save an empty draft?")
+                    .setPositiveButton("Save Anyway", (dialog, which) -> {
+                        // Continue with empty draft
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void showDraftSuccessDialog(String draftId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Draft Saved")
+                .setMessage("Your product has been saved as draft. You can continue editing later from the drafts section.")
+                .setPositiveButton("Continue Editing", null)
+                .setNegativeButton("OK", null)
+                .setNeutralButton("View Drafts", (dialog, which) -> showDraftsList())
+                .show();
+    }
+
+    private void showDraftsList() {
+        try {
+            SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+            String existingDrafts = prefs.getString(DRAFT_LIST_KEY, "");
+
+            if (existingDrafts.isEmpty()) {
+                Toast.makeText(this, "No drafts found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String[] draftIds = existingDrafts.split(",");
+            List<DraftItem> draftItems = new ArrayList<>();
+
+            for (String draftId : draftIds) {
+                String draftJson = prefs.getString(draftId, "");
+                if (!draftJson.isEmpty()) {
+                    try {
+                        JSONObject draftData = new JSONObject(draftJson);
+                        String productName = draftData.optString("product_name", "Unnamed Product");
+                        long timestamp = draftData.optLong("created_at", System.currentTimeMillis());
+
+                        String time = new SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+                                .format(new Date(timestamp));
+
+                        String displayText = productName.equals("Unnamed Product") ?
+                                "Draft (" + time + ")" : productName + " (" + time + ")";
+
+                        draftItems.add(new DraftItem(draftId, displayText));
+
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error parsing draft: " + e.getMessage());
+                    }
+                }
+            }
+
+            if (draftItems.isEmpty()) {
+                Toast.makeText(this, "No valid drafts found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Create array of display strings
+            String[] draftDisplayItems = new String[draftItems.size()];
+            for (int i = 0; i < draftItems.size(); i++) {
+                draftDisplayItems[i] = draftItems.get(i).displayText;
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Saved Drafts")
+                    .setItems(draftDisplayItems, (dialog, which) -> {
+                        DraftItem selectedDraft = draftItems.get(which);
+                        showDraftOptions(selectedDraft.draftId);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing drafts list: " + e.getMessage(), e);
+            Toast.makeText(this, "Error loading drafts", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showDraftOptions(String draftId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Draft Options")
+                .setItems(new CharSequence[]{"Load Draft", "Delete Draft", "Cancel"}, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Load
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Load Draft")
+                                    .setMessage("This will replace your current form data. Continue?")
+                                    .setPositiveButton("Load", (d, w) -> {
+                                        try {
+                                            loadDraft(draftId);
+                                        } catch (Exception e) {
+                                            Log.e(TAG, "Error loading draft: " + e.getMessage(), e);
+                                            Toast.makeText(AddProductActivity.this, "Error loading draft", Toast.LENGTH_SHORT).show();
+                                        }
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
+                            break;
+                        case 1: // Delete
+                            showDeleteConfirmation(draftId);
+                            break;
+                        case 2: // Cancel
+                            // Do nothing
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void loadDraft(String draftId) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+            String draftJson = prefs.getString(draftId, "");
+
+            if (draftJson == null || draftJson.isEmpty()) {
+                Toast.makeText(this, "Draft not found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            JSONObject draftData = new JSONObject(draftJson);
+
+            // Clear current form first
+            clearForm();
+
+            // Restore basic fields
+            etProductName.setText(draftData.optString("product_name", ""));
+            etMeasurement.setText(draftData.optString("measurement", ""));
+            etPrice.setText(draftData.optString("price", ""));
+            etSKU.setText(draftData.optString("sku", ""));
+            etHSNCode.setText(draftData.optString("hsn_code", ""));
+            etStock.setText(draftData.optString("stock", ""));
+            etDiscountPrice.setText(draftData.optString("discount_price", ""));
+
+            // Restore additional fields
+            etManufacturer.setText(draftData.optString("manufacturer", ""));
+            etMadeIn.setText(draftData.optString("made_in", ""));
+            etProductDescription.setText(draftData.optString("product_description", ""));
+            etShippingPolicy.setText(draftData.optString("shipping_policy", ""));
+            etFSSAINo.setText(draftData.optString("fssai_no", ""));
+            etTax.setText(draftData.optString("tax", ""));
+
+            // Restore spinners - with safety checks
+            safeSetSpinnerSelection(spinnerMeasurementUnit, draftData.optInt("measurement_unit_position", 0));
+            safeSetSpinnerSelection(spinnerStockUnit, draftData.optInt("stock_unit_position", 0));
+            safeSetSpinnerSelection(spinnerDiscountType, draftData.optInt("discount_type_position", 0));
+            safeSetSpinnerSelection(spinnerStatus, draftData.optInt("status_position", 0));
+            safeSetSpinnerSelection(spinnerCategory, draftData.optInt("category_position", 0));
+            safeSetSpinnerSelection(spinnerSubcategory, draftData.optInt("subcategory_position", 0));
+
+            // Restore product type
+            String productType = draftData.optString("product_type", "Packed");
+            if (productType.equals("Packed")) {
+                radioPacked.setChecked(true);
+            } else {
+                radioLoose.setChecked(true);
+            }
+
+            // Restore checkboxes
+            cbReturnable.setChecked(draftData.optBoolean("returnable", false));
+            cbCancelable.setChecked(draftData.optBoolean("cancelable", false));
+            cbCodAllowed.setChecked(draftData.optBoolean("cod_allowed", false));
+
+            // Restore variant control
+            String variantControl = draftData.optString("variant_control", "no");
+            if (variantControl.equals("yes")) {
+                radioVariantYes.setChecked(true);
+                showVariantSection();
+
+                // Load variants if they exist
+                if (draftData.has("variants")) {
+                    JSONArray variantsArray = draftData.getJSONArray("variants");
+                    for (int i = 0; i < variantsArray.length(); i++) {
+                        // Add variant form first
+                        addVariantForm();
+
+                        // Make sure we have enough variant views
+                        if (i < variantViews.size()) {
+                            View variantView = variantViews.get(i);
+                            JSONObject variantData = variantsArray.getJSONObject(i);
+
+                            // Safely set variant fields
+                            setVariantField(variantView, R.id.etVariantMeasurement, variantData.optString("measurement", ""));
+                            setVariantField(variantView, R.id.etVariantPrice, variantData.optString("price", ""));
+                            setVariantField(variantView, R.id.etVariantSKU, variantData.optString("sku", ""));
+                            setVariantField(variantView, R.id.etVariantHSNCode, variantData.optString("hsn_code", ""));
+                            setVariantField(variantView, R.id.etVariantStock, variantData.optString("stock", ""));
+                            setVariantField(variantView, R.id.etVariantDiscountPrice, variantData.optString("discount_price", ""));
+
+                            // Safely set variant spinners
+                            safeSetVariantSpinner(variantView, R.id.spinnerVariantMeasurementUnit, variantData.optInt("measurement_unit_position", 0));
+                            safeSetVariantSpinner(variantView, R.id.spinnerVariantStockUnit, variantData.optInt("stock_unit_position", 0));
+                            safeSetVariantSpinner(variantView, R.id.spinnerVariantDiscountType, variantData.optInt("discount_type_position", 0));
+                            safeSetVariantSpinner(variantView, R.id.spinnerVariantStatus, variantData.optInt("status_position", 0));
+                        }
+                    }
+                }
+            } else {
+                radioVariantNo.setChecked(true);
+                hideVariantSection();
+            }
+
+            // Handle image loading - FIXED VERSION
+            if (draftData.has("image_path")) {
+                String imagePath = draftData.getString("image_path");
+                Log.d(TAG, "Loading image from path: " + imagePath);
+                if (imagePath != null && !imagePath.isEmpty()) {
+                    File imageFile = new File(imagePath);
+                    if (imageFile.exists()) {
+                        // For camera images saved with FileProvider
+                        productImageUri = FileProvider.getUriForFile(this,
+                                getApplicationContext().getPackageName() + ".provider", imageFile);
+                        displaySelectedImage();
+                        Toast.makeText(this, "Saved image loaded", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Log.e(TAG, "Image file not found at path: " + imagePath);
+                        Toast.makeText(this, "Saved image file not found", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            } else if (draftData.has("image_uri")) {
+                // For gallery images, try to load from URI
+                String imageUriString = draftData.getString("image_uri");
+                Log.d(TAG, "Loading image from URI: " + imageUriString);
+                try {
+                    productImageUri = Uri.parse(imageUriString);
+                    if (productImageUri != null) {
+                        // Check if URI is still accessible
+                        try {
+                            getContentResolver().openInputStream(productImageUri);
+                            displaySelectedImage();
+                            Toast.makeText(this, "Saved image loaded from gallery", Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {
+                            Log.e(TAG, "Gallery image URI no longer accessible: " + e.getMessage());
+                            Toast.makeText(this, "Gallery image no longer available. Please reselect.", Toast.LENGTH_LONG).show();
+                            productImageUri = null;
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing image URI: " + e.getMessage());
+                    Toast.makeText(this, "Error loading saved image", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            Toast.makeText(this, "Draft loaded successfully", Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error loading draft: " + e.getMessage(), e);
+            Toast.makeText(this, "Error loading draft: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private JSONObject collectFormData() throws JSONException {
+        JSONObject draftData = new JSONObject();
+
+        // Basic product info
+        draftData.put("created_at", System.currentTimeMillis());
+
+        // Form fields
+        draftData.put("product_name", etProductName.getText().toString().trim());
+        draftData.put("product_type", radioPacked.isChecked() ? "Packed" : "Loose");
+        draftData.put("measurement", etMeasurement.getText().toString().trim());
+        draftData.put("measurement_unit_position", spinnerMeasurementUnit.getSelectedItemPosition());
+        draftData.put("price", etPrice.getText().toString().trim());
+        draftData.put("sku", etSKU.getText().toString().trim());
+        draftData.put("hsn_code", etHSNCode.getText().toString().trim());
+        draftData.put("stock", etStock.getText().toString().trim());
+        draftData.put("stock_unit_position", spinnerStockUnit.getSelectedItemPosition());
+        draftData.put("discount_price", etDiscountPrice.getText().toString().trim());
+        draftData.put("discount_type_position", spinnerDiscountType.getSelectedItemPosition());
+        draftData.put("status_position", spinnerStatus.getSelectedItemPosition());
+
+        // Additional fields
+        draftData.put("manufacturer", etManufacturer.getText().toString().trim());
+        draftData.put("made_in", etMadeIn.getText().toString().trim());
+        draftData.put("product_description", etProductDescription.getText().toString().trim());
+        draftData.put("shipping_policy", etShippingPolicy.getText().toString().trim());
+        draftData.put("fssai_no", etFSSAINo.getText().toString().trim());
+        draftData.put("tax", etTax.getText().toString().trim());
+
+        // Category data
+        draftData.put("category_position", spinnerCategory.getSelectedItemPosition());
+        draftData.put("subcategory_position", spinnerSubcategory.getSelectedItemPosition());
+
+        // Checkboxes
+        draftData.put("returnable", cbReturnable.isChecked());
+        draftData.put("cancelable", cbCancelable.isChecked());
+        draftData.put("cod_allowed", cbCodAllowed.isChecked());
+
+        // Variant control
+        draftData.put("variant_control", radioVariantYes.isChecked() ? "yes" : "no");
+
+        // Variants data
+        if (radioVariantYes.isChecked() && !variantViews.isEmpty()) {
+            JSONArray variantsArray = new JSONArray();
+            for (View variantView : variantViews) {
+                JSONObject variantData = new JSONObject();
+
+                TextInputEditText etVariantMeasurement = variantView.findViewById(R.id.etVariantMeasurement);
+                TextInputEditText etVariantPrice = variantView.findViewById(R.id.etVariantPrice);
+                TextInputEditText etVariantSKU = variantView.findViewById(R.id.etVariantSKU);
+                TextInputEditText etVariantHSNCode = variantView.findViewById(R.id.etVariantHSNCode);
+                TextInputEditText etVariantStock = variantView.findViewById(R.id.etVariantStock);
+                TextInputEditText etVariantDiscountPrice = variantView.findViewById(R.id.etVariantDiscountPrice);
+
+                Spinner spinnerVariantMeasurementUnit = variantView.findViewById(R.id.spinnerVariantMeasurementUnit);
+                Spinner spinnerVariantStockUnit = variantView.findViewById(R.id.spinnerVariantStockUnit);
+                Spinner spinnerVariantDiscountType = variantView.findViewById(R.id.spinnerVariantDiscountType);
+                Spinner spinnerVariantStatus = variantView.findViewById(R.id.spinnerVariantStatus);
+
+                variantData.put("measurement", etVariantMeasurement.getText().toString().trim());
+                variantData.put("price", etVariantPrice.getText().toString().trim());
+                variantData.put("sku", etVariantSKU.getText().toString().trim());
+                variantData.put("hsn_code", etVariantHSNCode.getText().toString().trim());
+                variantData.put("stock", etVariantStock.getText().toString().trim());
+                variantData.put("discount_price", etVariantDiscountPrice.getText().toString().trim());
+
+                variantData.put("measurement_unit_position", spinnerVariantMeasurementUnit.getSelectedItemPosition());
+                variantData.put("stock_unit_position", spinnerVariantStockUnit.getSelectedItemPosition());
+                variantData.put("discount_type_position", spinnerVariantDiscountType.getSelectedItemPosition());
+                variantData.put("status_position", spinnerVariantStatus.getSelectedItemPosition());
+
+                variantsArray.put(variantData);
+            }
+            draftData.put("variants", variantsArray);
+        }
+
+        // Image handling - IMPROVED: Save both path and URI
+        if (productImageUri != null) {
+            try {
+                // Save the file path for camera images
+                if (currentPhotoPath != null) {
+                    draftData.put("image_path", currentPhotoPath);
+                    Log.d(TAG, "Saved camera image path: " + currentPhotoPath);
+                }
+
+                // Always save the URI string for reference
+                draftData.put("image_uri", productImageUri.toString());
+                Log.d(TAG, "Saved image URI: " + productImageUri.toString());
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error saving image data to draft: " + e.getMessage());
+            }
+        }
+
+        return draftData;
+    }
+
+    // Improved method to get image file from URI
+    private File getImageFileFromUri(Uri uri) {
+        if (uri == null) return null;
+
+        try {
+            String scheme = uri.getScheme();
+            if (scheme != null && scheme.equals("file")) {
+                // File URI
+                return new File(uri.getPath());
+            } else if (scheme != null && scheme.equals("content")) {
+                // Content URI - try to get the file path
+                String filePath = getRealPathFromURI(uri);
+                if (filePath != null) {
+                    return new File(filePath);
+                } else {
+                    // For content URIs that we can't resolve, create a temporary file
+                    return createTempFileFromUri(uri);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting image file from URI: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    // Create temporary file from content URI
+    private File createTempFileFromUri(Uri uri) {
+        try {
+            android.content.ContentResolver resolver = getContentResolver();
+            java.io.InputStream inputStream = resolver.openInputStream(uri);
+            if (inputStream != null) {
+                File tempFile = File.createTempFile("temp_image", ".jpg", getCacheDir());
+                java.io.FileOutputStream outputStream = new java.io.FileOutputStream(tempFile);
+
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+
+                outputStream.close();
+                inputStream.close();
+                return tempFile;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating temp file from URI: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    private String getRealPathFromURI(Uri contentUri) {
+        if (contentUri == null) return null;
+
+        Cursor cursor = null;
+        try {
+            String[] proj = {MediaStore.Images.Media.DATA};
+            cursor = getContentResolver().query(contentUri, proj, null, null, null);
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                return cursor.getString(column_index);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting real path from URI: " + e.getMessage());
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    private void safeSetSpinnerSelection(Spinner spinner, int position) {
+        try {
+            if (spinner != null && position >= 0 && position < spinner.getCount()) {
+                spinner.setSelection(position);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting spinner selection: " + e.getMessage());
+        }
+    }
+
+    private void setVariantField(View variantView, int fieldId, String value) {
+        try {
+            TextInputEditText field = variantView.findViewById(fieldId);
+            if (field != null) {
+                field.setText(value);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting variant field: " + e.getMessage());
+        }
+    }
+
+    private void safeSetVariantSpinner(View variantView, int spinnerId, int position) {
+        try {
+            Spinner spinner = variantView.findViewById(spinnerId);
+            if (spinner != null && position >= 0 && position < spinner.getCount()) {
+                spinner.setSelection(position);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting variant spinner: " + e.getMessage());
+        }
+    }
+
+    private void clearForm() {
+        // Clear all fields
+        etProductName.setText("");
+        etMeasurement.setText("");
+        etPrice.setText("");
+        etSKU.setText("");
+        etHSNCode.setText("");
+        etStock.setText("");
+        etDiscountPrice.setText("");
+        etManufacturer.setText("");
+        etMadeIn.setText("");
+        etProductDescription.setText("");
+        etShippingPolicy.setText("");
+        etFSSAINo.setText("");
+        etTax.setText("");
+
+        // Reset spinners
+        safeSetSpinnerSelection(spinnerMeasurementUnit, 0);
+        safeSetSpinnerSelection(spinnerStockUnit, 0);
+        safeSetSpinnerSelection(spinnerDiscountType, 0);
+        safeSetSpinnerSelection(spinnerStatus, 0);
+        safeSetSpinnerSelection(spinnerCategory, 0);
+        safeSetSpinnerSelection(spinnerSubcategory, 0);
+
+        // Reset radio buttons
+        radioPacked.setChecked(true);
+        radioVariantNo.setChecked(true);
+
+        // Reset checkboxes
+        cbReturnable.setChecked(false);
+        cbCancelable.setChecked(false);
+        cbCodAllowed.setChecked(false);
+
+        // Clear image
+        productImageUri = null;
+        currentPhotoPath = null;
+        ivProductImagePreview.setVisibility(View.GONE);
+        tvNoImage.setVisibility(View.VISIBLE);
+        btnSelectImage.setText("Select Product Image");
+
+        // Clear variants
+        clearAllVariants();
+        hideVariantSection();
+    }
+
+    private void showDeleteConfirmation(String draftId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Draft")
+                .setMessage("Are you sure you want to delete this draft? This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteDraft(draftId))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteDraft(String draftId) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            // Remove the draft data
+            editor.remove(draftId);
+
+            // Remove the timestamp
+            editor.remove(draftId + "_timestamp");
+
+            // Remove from draft list
+            String existingDrafts = prefs.getString(DRAFT_LIST_KEY, "");
+            if (!existingDrafts.isEmpty()) {
+                Set<String> draftSet = new HashSet<>();
+                Collections.addAll(draftSet, existingDrafts.split(","));
+                draftSet.remove(draftId);
+
+                String updatedDrafts = String.join(",", draftSet);
+                if (updatedDrafts.isEmpty()) {
+                    editor.remove(DRAFT_LIST_KEY);
+                } else {
+                    editor.putString(DRAFT_LIST_KEY, updatedDrafts);
+                }
+            }
+
+            if (editor.commit()) {
+                Toast.makeText(this, "Draft deleted successfully", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Failed to delete draft", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error deleting draft: " + e.getMessage(), e);
+            Toast.makeText(this, "Error deleting draft", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showBulkDeleteOptions() {
+        SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+        String existingDrafts = prefs.getString(DRAFT_LIST_KEY, "");
+
+        if (existingDrafts.isEmpty()) {
+            Toast.makeText(this, "No drafts found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Drafts")
+                .setItems(new CharSequence[]{
+                        "Delete All Drafts",
+                        "Delete Old Drafts (older than 1 week)",
+                        "Cancel"
+                }, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            showDeleteAllConfirmation();
+                            break;
+                        case 1:
+                            deleteOldDrafts();
+                            break;
+                        case 2:
+                            // Cancel
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void showDeleteAllConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete All Drafts")
+                .setMessage("Are you sure you want to delete ALL drafts? This action cannot be undone.")
+                .setPositiveButton("Delete All", (dialog, which) -> deleteAllDrafts())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteAllDrafts() {
+        try {
+            SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            String existingDrafts = prefs.getString(DRAFT_LIST_KEY, "");
+
+            if (!existingDrafts.isEmpty()) {
+                String[] draftIds = existingDrafts.split(",");
+                int deletedCount = 0;
+
+                for (String draftId : draftIds) {
+                    editor.remove(draftId);
+                    editor.remove(draftId + "_timestamp");
+                    deletedCount++;
+                }
+
+                editor.remove(DRAFT_LIST_KEY);
+
+                if (editor.commit()) {
+                    Toast.makeText(this, "Deleted " + deletedCount + " draft(s)", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Failed to delete drafts", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "No drafts found to delete", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error deleting all drafts: " + e.getMessage(), e);
+            Toast.makeText(this, "Error deleting drafts", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void deleteOldDrafts() {
+        int deletedCount = clearOldDrafts();
+        if (deletedCount > 0) {
+            Toast.makeText(this, "Deleted " + deletedCount + " old draft(s)", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "No old drafts found", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private int clearOldDrafts() {
+        SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        long oneWeekAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000); // 1 week ago
+        int deletedCount = 0;
+
+        // Get all keys
+        Map<String, ?> allEntries = prefs.getAll();
+        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            if (entry.getKey().endsWith("_timestamp")) {
+                long timestamp = prefs.getLong(entry.getKey(), 0);
+                if (timestamp < oneWeekAgo) {
+                    String draftId = entry.getKey().replace("_timestamp", "");
+                    editor.remove(draftId);
+                    editor.remove(entry.getKey());
+                    deletedCount++;
+
+                    // Also remove from draft list
+                    String existingDrafts = prefs.getString(DRAFT_LIST_KEY, "");
+                    if (existingDrafts.contains(draftId)) {
+                        String updatedDrafts = existingDrafts.replace(draftId, "")
+                                .replace(",,", ",")
+                                .replaceAll("^,|,$", "");
+                        if (updatedDrafts.isEmpty()) {
+                            editor.remove(DRAFT_LIST_KEY);
+                        } else {
+                            editor.putString(DRAFT_LIST_KEY, updatedDrafts);
+                        }
+                    }
+                }
+            }
+        }
+
+        editor.apply();
+        return deletedCount;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up temporary camera file if exists
+        if (currentPhotoPath != null) {
+            File file = new File(currentPhotoPath);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
     }
 }
