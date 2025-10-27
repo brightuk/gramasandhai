@@ -19,6 +19,7 @@
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
         android:elevation="0dp"
+
         android:fitsSystemWindows="true">
 
         <com.google.android.material.appbar.MaterialToolbar
@@ -27,8 +28,9 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/white"
             app:title="Add New Variant"
+
             app:titleTextColor="#1A202C"
-            app:navigationIcon="@drawable/ic_arrow_back_rounded"
+            app:navigationIcon="@drawable/ic_arrow_back"
             app:menu="@menu/menu_add_variant"
             app:elevation="1dp"
             app:titleTextAppearance="@style/ToolbarTitle" />

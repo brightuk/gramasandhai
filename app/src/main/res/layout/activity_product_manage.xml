@@ -21,7 +21,9 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/white"
             app:title="Product Management"
-            app:titleTextColor="@color/black"
+
+            app:titleTextColor="#1A202C"
+            app:navigationIcon="@drawable/ic_arrow_back"
             app:menu="@menu/product_management_menu"
             app:elevation="4dp" />
 
