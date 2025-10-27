@@ -582,7 +582,8 @@
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/recyclerViewOrders"
                             android:layout_width="match_parent"
-                            android:layout_height="400dp"
+                            android:layout_height="wrap_content"
+                            android:minHeight="200dp"
                             android:padding="8dp" />
 
                         <ProgressBar
@@ -598,6 +599,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="120dp"
                             android:gravity="center"
+
                             android:text="No orders found"
                             android:textSize="16sp"
                             android:textColor="#999"
@@ -630,7 +632,7 @@
             android:gravity="center"
             android:layout_gravity="center"
             android:padding="32dp"
-            android:background="@drawable/bg_loading_dialog">
+           >
 
             <ProgressBar
                 android:layout_width="48dp"

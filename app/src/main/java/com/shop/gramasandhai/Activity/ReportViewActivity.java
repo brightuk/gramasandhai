@@ -218,7 +218,7 @@ public class ReportViewActivity extends AppCompatActivity {
         Log.d(TAG, "Setting up RecyclerView");
 
         // Initialize with empty list first
-        orderAdapter = new OrderAdapter(filteredOrderList, new OrderAdapter.OrderClickListener() {
+        orderAdapter = new OrderAdapter(new ArrayList<>(), new OrderAdapter.OrderClickListener() {
             @Override
             public void onOrderClick(Orders order) {
                 showOrderDetails(order);
@@ -236,6 +236,7 @@ public class ReportViewActivity extends AppCompatActivity {
 
         Log.d(TAG, "RecyclerView setup completed");
     }
+
 
     private void setupClickListeners() {
         fabRefresh.setOnClickListener(v -> {
@@ -304,7 +305,7 @@ public class ReportViewActivity extends AppCompatActivity {
         Log.d(TAG, "Applying filters - Status: " + currentStatusFilter + ", Date: " + currentDateFilter);
         Log.d(TAG, "Total orders before filter: " + orderList.size());
 
-        filteredOrderList.clear();
+        List<Orders> tempFilteredList = new ArrayList<>();
 
         for (Orders order : orderList) {
             boolean statusMatch = currentStatusFilter.equals("ALL") ||
@@ -313,24 +314,85 @@ public class ReportViewActivity extends AppCompatActivity {
             boolean dateMatch = currentDateFilter.isEmpty() ||
                     isDateInRange(order.getCreatedAt(), selectedStartDate, selectedEndDate);
 
-            Log.d(TAG, "Order " + order.getOrderId() +
-                    " - Status: " + order.getOrderStatus() +
-                    " - Date: " + order.getCreatedAt() +
-                    " - StatusMatch: " + statusMatch +
-                    " - DateMatch: " + dateMatch);
-
             if (statusMatch && dateMatch) {
-                filteredOrderList.add(order);
+                tempFilteredList.add(order);
             }
         }
 
-        Log.d(TAG, "Orders after filter: " + filteredOrderList.size());
+        Log.d(TAG, "Orders after filter: " + tempFilteredList.size());
 
         runOnUiThread(() -> {
-            updateOrderCount();
-            updateSummaryCards();
-            orderAdapter.updateData(filteredOrderList);
-            checkEmptyState();
+            // Update the adapter with filtered data
+            orderAdapter.updateData(tempFilteredList);
+            updateOrderCount(tempFilteredList.size());
+            updateSummaryCards(tempFilteredList);
+            checkEmptyState(tempFilteredList.size());
+            Log.d(TAG, "Adapter notified with " + tempFilteredList.size() + " filtered items");
+        });
+    }
+
+    private void updateOrderCount(int count) {
+        runOnUiThread(() -> {
+            if (tvOrderCount != null) {
+                tvOrderCount.setText(count + " orders");
+            }
+        });
+    }
+
+    private void updateSummaryCards(List<Orders> orders) {
+        runOnUiThread(() -> {
+            try {
+                int completedOrders = 0;
+                double totalRevenue = 0.0;
+
+                for (Orders order : orders) {
+                    if (order.getOrderStatus() != null && "COM".equals(order.getOrderStatus())) {
+                        completedOrders++;
+                        try {
+                            totalRevenue += Double.parseDouble(order.getAmount());
+                        } catch (NumberFormatException e) {
+                            Log.e(TAG, "Invalid amount: " + order.getAmount());
+                        }
+                    }
+                }
+
+                if (tvCompletedOrders != null) {
+                    tvCompletedOrders.setText(String.valueOf(completedOrders));
+                }
+                if (tvTotalRevenue != null) {
+                    tvTotalRevenue.setText("₹" + String.format(Locale.US, "%.2f", totalRevenue));
+                }
+
+                Log.d(TAG, "Summary updated - Completed: " + completedOrders + ", Revenue: " + totalRevenue);
+            } catch (Exception e) {
+                Log.e(TAG, "Error in updateSummaryCards: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    private void checkEmptyState(int count) {
+        runOnUiThread(() -> {
+            try {
+                if (count == 0) {
+                    if (tvEmptyState != null) {
+                        tvEmptyState.setVisibility(View.VISIBLE);
+                    }
+                    if (recyclerViewOrders != null) {
+                        recyclerViewOrders.setVisibility(View.GONE);
+                    }
+                    Log.d(TAG, "No orders to display - showing empty state");
+                } else {
+                    if (tvEmptyState != null) {
+                        tvEmptyState.setVisibility(View.GONE);
+                    }
+                    if (recyclerViewOrders != null) {
+                        recyclerViewOrders.setVisibility(View.VISIBLE);
+                    }
+                    Log.d(TAG, "Displaying " + count + " orders");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error in checkEmptyState: " + e.getMessage(), e);
+            }
         });
     }
 
@@ -650,7 +712,7 @@ public class ReportViewActivity extends AppCompatActivity {
                     showLoading(false);
                     Toast.makeText(ReportViewActivity.this,
                             "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    checkEmptyState();
+                    checkEmptyState(0);
                 });
             }
 
@@ -665,24 +727,57 @@ public class ReportViewActivity extends AppCompatActivity {
                         JSONObject jsonResponse = new JSONObject(responseBodyString);
                         if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
                             parseOrdersData(jsonResponse);
-                            updateSummaryCards();
-                            applyFilters();
+
+                            // Update adapter with all orders
+                            orderAdapter.updateData(orderList);
+                            updateOrderCount(orderList.size());
+                            updateSummaryCards(orderList);
+                            checkEmptyState(orderList.size());
+
+                            Log.d(TAG, "Adapter updated with " + orderList.size() + " items");
                             Toast.makeText(ReportViewActivity.this,
                                     "Orders loaded successfully: " + orderList.size() + " found", Toast.LENGTH_SHORT).show();
                         } else {
                             String errorMsg = jsonResponse.optString("message", "Unknown error");
                             Toast.makeText(ReportViewActivity.this,
                                     "Failed to load orders: " + errorMsg, Toast.LENGTH_LONG).show();
-                            checkEmptyState();
+                            checkEmptyState(0);
                         }
                     } catch (JSONException e) {
                         Log.e(TAG, "Error parsing response: " + e.getMessage());
                         Toast.makeText(ReportViewActivity.this,
                                 "Error parsing orders data", Toast.LENGTH_LONG).show();
-                        checkEmptyState();
+                        checkEmptyState(0);
                     }
                 });
             }
+        });
+    }
+    private void debugOrdersData() {
+        Log.d(TAG, "=== DEBUG ORDERS DATA ===");
+        Log.d(TAG, "Total orders: " + orderList.size());
+        for (int i = 0; i < Math.min(orderList.size(), 5); i++) {
+            Orders order = orderList.get(i);
+            Log.d(TAG, "Order " + i + ": " +
+                    "ID: " + order.getOrderId() +
+                    ", Status: " + order.getOrderStatus() +
+                    ", Amount: " + order.getAmount() +
+                    ", Date: " + order.getCreatedAt());
+        }
+        Log.d(TAG, "=== END DEBUG ===");
+    }
+
+    private void debugRecyclerViewState() {
+        runOnUiThread(() -> {
+            Log.d(TAG, "=== RECYCLERVIEW DEBUG ===");
+            Log.d(TAG, "RecyclerView visibility: " + recyclerViewOrders.getVisibility());
+            Log.d(TAG, "RecyclerView height: " + recyclerViewOrders.getHeight());
+            Log.d(TAG, "RecyclerView width: " + recyclerViewOrders.getWidth());
+            Log.d(TAG, "RecyclerView layout manager: " + recyclerViewOrders.getLayoutManager());
+            Log.d(TAG, "RecyclerView adapter: " + recyclerViewOrders.getAdapter());
+            Log.d(TAG, "Adapter item count: " + (recyclerViewOrders.getAdapter() != null ? recyclerViewOrders.getAdapter().getItemCount() : "null"));
+            Log.d(TAG, "Empty state visibility: " + tvEmptyState.getVisibility());
+            Log.d(TAG, "=== END DEBUG ===");
         });
     }
 
@@ -726,17 +821,11 @@ public class ReportViewActivity extends AppCompatActivity {
                 order.setReceiverName(orderObj.optString("receiver_name", ""));
 
                 orderList.add(order);
-                Log.d(TAG, "Added order: " + order.getOrderId() + " - " + order.getOrderStatus() + " - " + order.getCreatedAt());
             }
-        } else {
-            Log.d(TAG, "No 'orders' key found in response");
         }
 
         Log.d(TAG, "Total orders parsed: " + orderList.size());
-
-        // Update filtered list with all orders initially
-        filteredOrderList.clear();
-        filteredOrderList.addAll(orderList);
+        debugOrdersData(); // Add this line
     }
 
     private void showLoading(boolean show) {

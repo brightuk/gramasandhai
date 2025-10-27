@@ -1,5 +1,6 @@
 package com.shop.gramasandhai.Adapter;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +16,7 @@ import com.shop.gramasandhai.R;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -50,17 +52,24 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
 
     @Override
     public int getItemCount() {
-        return orderList.size();
+        return orderList != null ? orderList.size() : 0;
     }
 
     public void updateData(List<Orders> newOrders) {
-        orderList.clear();
-        orderList.addAll(newOrders);
-        notifyDataSetChanged();
+        // Clear existing data and add all new data
+        if (orderList != null) {
+            orderList.clear();
+            if (newOrders != null) {
+                orderList.addAll(newOrders);
+            }
+        } else {
+            orderList = new ArrayList<>(newOrders);
+        }
+        notifyDataSetChanged(); // This is crucial - it refreshes the RecyclerView
     }
 
     static class OrderViewHolder extends RecyclerView.ViewHolder {
-        private TextView tvOrderId, tvOrderDate, tvAmount, tvPaymentMethod, tvDeliveryAddress;
+        private TextView tvOrderId, tvOrderDate, tvAmount, tvPaymentMethod, tvItems, tvDeliveryAddress;
         private Chip chipStatus;
         private MaterialButton btnViewDetails, btnTrack;
 
@@ -70,13 +79,20 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             tvOrderDate = itemView.findViewById(R.id.tvOrderDate);
             tvAmount = itemView.findViewById(R.id.tvAmount);
             tvPaymentMethod = itemView.findViewById(R.id.tvPaymentMethod);
+            tvItems = itemView.findViewById(R.id.tvItems); // Make sure this exists in your XML
             tvDeliveryAddress = itemView.findViewById(R.id.tvDeliveryAddress);
             chipStatus = itemView.findViewById(R.id.chipStatus);
             btnViewDetails = itemView.findViewById(R.id.btnViewDetails);
             btnTrack = itemView.findViewById(R.id.btnTrack);
+
+            // Debug: Check if views are found
+            Log.d("OrderAdapter", "tvOrderId: " + (tvOrderId != null));
+            Log.d("OrderAdapter", "chipStatus: " + (chipStatus != null));
         }
 
         public void bind(Orders order, OrderClickListener listener) {
+            Log.d("OrderAdapter", "Binding order: " + order.getOrderId());
+
             // Set order data with null checks
             if (tvOrderId != null) {
                 tvOrderId.setText("Order #" + (order.getOrderId() != null ? order.getOrderId() : "N/A"));
@@ -89,7 +105,14 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                         (order.getPaymentMethod() != null ? order.getPaymentMethod() : "N/A"));
             }
             if (tvDeliveryAddress != null) {
-                tvDeliveryAddress.setText("🏠 " + (order.getShippingAddress() != null ? order.getShippingAddress() : "N/A"));
+                String address = order.getShippingAddress() != null ? order.getShippingAddress() : "N/A";
+                String city = order.getCity() != null ? order.getCity() : "";
+                tvDeliveryAddress.setText("🏠 " + address + (city.isEmpty() ? "" : ", " + city));
+            }
+
+            // For items count - you might need to add this field to your Orders model
+            if (tvItems != null) {
+                tvItems.setText("📦 1 item"); // Default value - adjust based on your data
             }
 
             // Format date
@@ -103,17 +126,29 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
 
             // Set click listeners
             if (btnViewDetails != null) {
-                btnViewDetails.setOnClickListener(v -> listener.onOrderClick(order));
+                btnViewDetails.setOnClickListener(v -> {
+                    Log.d("OrderAdapter", "View details clicked for: " + order.getOrderId());
+                    listener.onOrderClick(order);
+                });
             }
             if (btnTrack != null) {
-                btnTrack.setOnClickListener(v -> listener.onTrackOrder(order));
+                btnTrack.setOnClickListener(v -> {
+                    Log.d("OrderAdapter", "Track clicked for: " + order.getOrderId());
+                    listener.onTrackOrder(order);
+                });
             }
 
-            itemView.setOnClickListener(v -> listener.onOrderClick(order));
+            itemView.setOnClickListener(v -> {
+                Log.d("OrderAdapter", "Item clicked: " + order.getOrderId());
+                listener.onOrderClick(order);
+            });
         }
 
         private void setOrderStatus(String status) {
-            if (chipStatus == null) return;
+            if (chipStatus == null) {
+                Log.e("OrderAdapter", "chipStatus is null!");
+                return;
+            }
 
             String statusText;
             int colorResource;
@@ -147,6 +182,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
 
             chipStatus.setText(statusText);
             chipStatus.setChipBackgroundColorResource(colorResource);
+            Log.d("OrderAdapter", "Set status: " + statusText);
         }
 
         private String getPaymentMethodEmoji(String paymentMethod) {
