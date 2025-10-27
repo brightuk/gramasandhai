@@ -36,7 +36,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -111,6 +113,9 @@ public class AddProductActivity extends AppCompatActivity {
 
             // Initialize progress bar
             initializeProgressBar();
+            if (new Random().nextInt(10) == 0) { // Run approximately 10% of the time
+                cleanupOldProductImages();
+            }
 
             // Initialize views
             Log.d(TAG, "Initializing views...");
@@ -696,11 +701,19 @@ public class AddProductActivity extends AppCompatActivity {
 
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
+        String imageFileName = "PRODUCT_" + timeStamp + ".jpg";
+
+        // Use app's external files directory for persistent storage
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
-        currentPhotoPath = image.getAbsolutePath();
-        return image;
+
+        // Create the directory if it doesn't exist
+        if (storageDir != null && !storageDir.exists()) {
+            storageDir.mkdirs();
+        }
+
+        File imageFile = new File(storageDir, imageFileName);
+        currentPhotoPath = imageFile.getAbsolutePath();
+        return imageFile;
     }
 
     private void dispatchGalleryIntent() {
@@ -717,8 +730,8 @@ public class AddProductActivity extends AppCompatActivity {
             switch (requestCode) {
                 case PICK_IMAGE_REQUEST:
                     if (data != null && data.getData() != null) {
-                        productImageUri = data.getData();
-                        displaySelectedImage();
+                        // Use the new method that copies the image
+                        handleGalleryImage(data.getData());
                     }
                     break;
                 case CAMERA_REQUEST:
@@ -732,6 +745,7 @@ public class AddProductActivity extends AppCompatActivity {
             }
         }
     }
+
 
     private void displaySelectedImage() {
         if (productImageUri != null) {
@@ -1512,25 +1526,35 @@ public class AddProductActivity extends AppCompatActivity {
                 hideVariantSection();
             }
 
-            // Handle image loading - FIXED VERSION
+            // Handle image loading - IMPROVED VERSION
+            boolean imageLoaded = false;
+
+// First try to load from saved path (for camera images)
             if (draftData.has("image_path")) {
                 String imagePath = draftData.getString("image_path");
                 Log.d(TAG, "Loading image from path: " + imagePath);
                 if (imagePath != null && !imagePath.isEmpty()) {
                     File imageFile = new File(imagePath);
                     if (imageFile.exists()) {
-                        // For camera images saved with FileProvider
-                        productImageUri = FileProvider.getUriForFile(this,
-                                getApplicationContext().getPackageName() + ".provider", imageFile);
-                        displaySelectedImage();
-                        Toast.makeText(this, "Saved image loaded", Toast.LENGTH_SHORT).show();
+                        try {
+                            productImageUri = FileProvider.getUriForFile(this,
+                                    getApplicationContext().getPackageName() + ".provider", imageFile);
+                            currentPhotoPath = imagePath; // Make sure to set this
+                            displaySelectedImage();
+                            imageLoaded = true;
+                            Log.d(TAG, "Image loaded successfully from path: " + imagePath);
+                            Toast.makeText(this, "Saved image loaded", Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error creating URI from file: " + e.getMessage());
+                        }
                     } else {
                         Log.e(TAG, "Image file not found at path: " + imagePath);
-                        Toast.makeText(this, "Saved image file not found", Toast.LENGTH_SHORT).show();
                     }
                 }
-            } else if (draftData.has("image_uri")) {
-                // For gallery images, try to load from URI
+            }
+
+// If path loading failed, try URI (for gallery images)
+            if (!imageLoaded && draftData.has("image_uri")) {
                 String imageUriString = draftData.getString("image_uri");
                 Log.d(TAG, "Loading image from URI: " + imageUriString);
                 try {
@@ -1538,19 +1562,34 @@ public class AddProductActivity extends AppCompatActivity {
                     if (productImageUri != null) {
                         // Check if URI is still accessible
                         try {
-                            getContentResolver().openInputStream(productImageUri);
-                            displaySelectedImage();
-                            Toast.makeText(this, "Saved image loaded from gallery", Toast.LENGTH_SHORT).show();
+                            InputStream inputStream = getContentResolver().openInputStream(productImageUri);
+                            if (inputStream != null) {
+                                inputStream.close();
+                                displaySelectedImage();
+                                imageLoaded = true;
+                                Log.d(TAG, "Gallery image loaded successfully from URI");
+                                Toast.makeText(this, "Saved image loaded from gallery", Toast.LENGTH_SHORT).show();
+                            }
                         } catch (Exception e) {
                             Log.e(TAG, "Gallery image URI no longer accessible: " + e.getMessage());
-                            Toast.makeText(this, "Gallery image no longer available. Please reselect.", Toast.LENGTH_LONG).show();
-                            productImageUri = null;
+                            showImageRecoveryDialog();
                         }
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Error parsing image URI: " + e.getMessage());
-                    Toast.makeText(this, "Error loading saved image", Toast.LENGTH_SHORT).show();
                 }
+            }
+
+// If both methods failed, show appropriate message
+            if (!imageLoaded) {
+                Log.w(TAG, "Could not load saved image from draft");
+                // Don't show toast here as it might be confusing for users
+                // Just leave the image selection empty
+                productImageUri = null;
+                currentPhotoPath = null;
+                ivProductImagePreview.setVisibility(View.GONE);
+                tvNoImage.setVisibility(View.VISIBLE);
+                btnSelectImage.setText("Select Product Image");
             }
 
             Toast.makeText(this, "Draft loaded successfully", Toast.LENGTH_SHORT).show();
@@ -1559,6 +1598,66 @@ public class AddProductActivity extends AppCompatActivity {
             Log.e(TAG, "Error loading draft: " + e.getMessage(), e);
             Toast.makeText(this, "Error loading draft: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+    private void showImageRecoveryDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Image Not Available")
+                .setMessage("The saved image is no longer available. This can happen if the original image was moved, deleted, or if you've cleared app data. You'll need to select a new image.")
+                .setPositiveButton("OK", (dialog, which) -> {
+                    // Clear the invalid image references
+                    productImageUri = null;
+                    currentPhotoPath = null;
+                    displaySelectedImage();
+                })
+                .show();
+    }
+
+
+    private void handleGalleryImage(Uri selectedImageUri) {
+        try {
+            // Copy the gallery image to app storage
+            File copiedImageFile = copyImageToAppStorage(selectedImageUri);
+            if (copiedImageFile != null && copiedImageFile.exists()) {
+                productImageUri = FileProvider.getUriForFile(this,
+                        getApplicationContext().getPackageName() + ".provider", copiedImageFile);
+                currentPhotoPath = copiedImageFile.getAbsolutePath();
+                displaySelectedImage();
+            } else {
+                throw new IOException("Failed to copy image to app storage");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling gallery image: " + e.getMessage());
+            Toast.makeText(this, "Error processing selected image", Toast.LENGTH_SHORT).show();
+            // Fallback to original URI
+            productImageUri = selectedImageUri;
+            displaySelectedImage();
+        }
+    }
+
+    private File copyImageToAppStorage(Uri sourceUri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(sourceUri);
+        if (inputStream == null) {
+            throw new IOException("Cannot open input stream from URI");
+        }
+
+        // Create a file in app's internal storage
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "GALLERY_" + timeStamp + ".jpg";
+        File destinationFile = new File(storageDir, imageFileName);
+
+        FileOutputStream outputStream = new FileOutputStream(destinationFile);
+
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        outputStream.close();
+        inputStream.close();
+
+        return destinationFile;
     }
 
     private JSONObject collectFormData() throws JSONException {
@@ -1637,21 +1736,11 @@ public class AddProductActivity extends AppCompatActivity {
         }
 
         // Image handling - IMPROVED: Save both path and URI
-        if (productImageUri != null) {
-            try {
-                // Save the file path for camera images
-                if (currentPhotoPath != null) {
-                    draftData.put("image_path", currentPhotoPath);
-                    Log.d(TAG, "Saved camera image path: " + currentPhotoPath);
-                }
-
-                // Always save the URI string for reference
-                draftData.put("image_uri", productImageUri.toString());
-                Log.d(TAG, "Saved image URI: " + productImageUri.toString());
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error saving image data to draft: " + e.getMessage());
-            }
+        // In collectFormData method, replace the image handling section with:
+        if (productImageUri != null && currentPhotoPath != null) {
+            draftData.put("image_path", currentPhotoPath);
+            Log.d(TAG, "Saved image path: " + currentPhotoPath);
+            // Don't save the URI to avoid permission issues
         }
 
         return draftData;
@@ -1936,6 +2025,7 @@ public class AddProductActivity extends AppCompatActivity {
         }
     }
 
+
     private int clearOldDrafts() {
         SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -1973,16 +2063,41 @@ public class AddProductActivity extends AppCompatActivity {
         editor.apply();
         return deletedCount;
     }
+    private void cleanupOldProductImages() {
+        // Run this occasionally to clean up old product images
+        new Thread(() -> {
+            try {
+                File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+                if (storageDir != null && storageDir.exists()) {
+                    File[] files = storageDir.listFiles((dir, name) -> name.startsWith("PRODUCT_"));
+                    if (files != null) {
+                        long oneMonthAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000); // 30 days
+                        int deletedCount = 0;
+                        for (File file : files) {
+                            if (file.lastModified() < oneMonthAgo) {
+                                if (file.delete()) {
+                                    deletedCount++;
+                                }
+                            }
+                        }
+                        Log.d(TAG, "Cleaned up " + deletedCount + " old product images");
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error cleaning up old images: " + e.getMessage());
+            }
+        }).start();
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // Clean up temporary camera file if exists
-        if (currentPhotoPath != null) {
-            File file = new File(currentPhotoPath);
-            if (file.exists()) {
-                file.delete();
-            }
-        }
+//        if (currentPhotoPath != null) {
+//            File file = new File(currentPhotoPath);
+//            if (file.exists()) {
+//                file.delete();
+//            }
+//        }
     }
 }

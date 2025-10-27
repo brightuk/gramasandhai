@@ -36,7 +36,9 @@
         tools:targetApi="31">
         <activity
             android:name=".Activity.ReportViewActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Gramasandhai.NoActionBar"
+            />
         <!-- FileProvider for file sharing and camera operations -->
         <provider
             android:name="androidx.core.content.FileProvider"
