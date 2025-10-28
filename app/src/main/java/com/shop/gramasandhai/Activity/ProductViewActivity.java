@@ -47,7 +47,7 @@ import okhttp3.Response;
 public class ProductViewActivity extends AppCompatActivity implements VariantAdapter.OnVariantChangeListener {
 
     // Views
-    private TextView tvProductName, tvProductId, tvProductDescription, tvStatusBadge;
+    private TextView tvProductName, tvProductId, tvProductPrice,tvProductDescription, tvStatusBadge;
     private TextView tvVariantsCount, tvActiveVariants, tvTotalStock, tvVariantsCountHeader;
     private TextView tvRating, tvErrorTitle, tvErrorMessage;
     private SwitchCompat switchProductStatus;
@@ -103,6 +103,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         // Main views
         tvProductName = findViewById(R.id.tvProductName);
         tvProductId = findViewById(R.id.tvProductId);
+        tvProductPrice=findViewById(R.id.tvProductPrice);
         tvProductDescription = findViewById(R.id.tvProductDescription);
         tvStatusBadge = findViewById(R.id.tvStatusBadge);
         switchProductStatus = findViewById(R.id.switchProductStatus);
@@ -310,12 +311,107 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         }
     }
 
+    // Add this method to handle variant deletion
+    @Override
+    public void onVariantDeleteClicked(int position, String variantId) {
+        showDeleteConfirmationDialog(position, variantId);
+    }
+
+    private void showDeleteConfirmationDialog(int position, String variantId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Variant")
+                .setMessage("Are you sure you want to delete this variant? This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    deleteVariantFromAPI(position, variantId);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteVariantFromAPI(int position, String variantId) {
+        // Show a progress dialog for better UX
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setMessage("Deleting variant...")
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+
+        String url = Attributes.Main_Url + "store/variant/delete/" + variantId;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Log.e("API_ERROR", "Variant deletion failed: " + e.getMessage());
+                    Toast.makeText(ProductViewActivity.this, "Failed to delete variant: Network error", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBodyString = response.body() != null ? response.body().string() : "";
+                Log.d("DELETE_RESPONSE", "Response: " + responseBodyString);
+
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    try {
+                        JSONObject responseObject = new JSONObject(responseBodyString);
+
+                        if (response.isSuccessful()) {
+                            // Check for success in different possible response formats
+                            boolean isSuccess = false;
+                            if (responseObject.has("status")) {
+                                isSuccess = responseObject.getBoolean("status");
+                            } else if (responseObject.has("success")) {
+                                isSuccess = responseObject.getBoolean("success");
+                            } else {
+                                // If no status field, consider 200 response as success
+                                isSuccess = response.isSuccessful();
+                            }
+
+                            if (isSuccess) {
+                                Toast.makeText(ProductViewActivity.this, "Variant deleted successfully", Toast.LENGTH_SHORT).show();
+
+                                // Refresh the entire product data
+                                loadProductDataFromAPI();
+
+                            } else {
+                                String errorMessage = responseObject.optString("message", "Failed to delete variant");
+                                Log.e("API_ERROR", "Variant deletion failed: " + errorMessage);
+                                Toast.makeText(ProductViewActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            String errorMessage = "Server error: " + response.code();
+                            Log.e("API_ERROR", "Variant deletion failed: " + errorMessage);
+                            Toast.makeText(ProductViewActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Log.e("JSON_ERROR", "Delete response parsing failed: " + e.getMessage());
+                        Toast.makeText(ProductViewActivity.this, "Variant deleted successfully", Toast.LENGTH_SHORT).show();
+
+                        // Even if parsing fails, refresh the data
+                        loadProductDataFromAPI();
+                    }
+                });
+            }
+        });
+    }
+
     private void displayProductDetails(JSONObject product) {
         try {
             // Display product name
             if (product.has("prod_name")) {
                 productName = product.getString("prod_name");
                 tvProductName.setText(productName);
+                tvProductPrice.setText(product.getString("prod_price"));
+
 
                 // Update toolbar title
                 if (getSupportActionBar() != null) {

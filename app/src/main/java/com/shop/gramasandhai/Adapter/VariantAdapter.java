@@ -42,6 +42,7 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
         void onVariantPriceChanged(int position, String newPrice);
         void onVariantDiscPriceChanged(int position, String newDiscPrice);
         void onVariantDiscountTypeChanged(int position, String discountType, String discountValue);
+        void onVariantDeleteClicked(int position, String variantId); // Add delete listener
     }
 
     public VariantAdapter(List<JSONObject> variantsList, OnVariantChangeListener listener) {
@@ -86,12 +87,22 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
         }
     }
 
+    // Add method to remove variant from list
+    public void removeVariant(int position) {
+        if (position >= 0 && position < variantsList.size()) {
+            variantsList.remove(position);
+            notifyItemRemoved(position);
+            // Notify about range change for positions after removed item
+            notifyItemRangeChanged(position, variantsList.size() - position);
+        }
+    }
+
     class VariantViewHolder extends RecyclerView.ViewHolder {
         TextView tvVariantMeasure, tvSkuCode, tvStock, tvDiscountBadge, tvDiscountLabel, tvActualPrice;
         EditText etVariantPrice, etDiscountValue;
         SwitchCompat switchVariantStatus;
         MaterialButtonToggleGroup toggleDiscountType;
-        MaterialButton btnNoDiscount, btnFlat, btnPercentage, btnUpdateVariant;
+        MaterialButton btnNoDiscount, btnFlat, btnPercentage, btnUpdateVariant, btnDeleteVariant; // Add delete button
         LinearLayout layoutDiscountValue, layoutActualPrice;
 
         private boolean isUpdating = false;
@@ -158,6 +169,7 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
             tvActualPrice = itemView.findViewById(R.id.tvActualPrice);
             etDiscountValue = itemView.findViewById(R.id.etDiscountValue);
             btnUpdateVariant = itemView.findViewById(R.id.btnUpdateVariant);
+            btnDeleteVariant = itemView.findViewById(R.id.btnDeleteVariant); // Initialize delete button
         }
 
         @SuppressLint("SetTextI18n")
@@ -328,6 +340,19 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
 
                     } catch (Exception e) {
                         Log.e(TAG, "Error preparing update: " + e.getMessage());
+                    }
+                }
+            });
+
+            // Setup delete button listener
+            btnDeleteVariant.setOnClickListener(v -> {
+                if (listener != null && currentPosition != RecyclerView.NO_POSITION) {
+                    try {
+                        JSONObject variant = variantsList.get(currentPosition);
+                        String variantId = variant.getString("id");
+                        listener.onVariantDeleteClicked(currentPosition, variantId);
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error getting variant ID for deletion: " + e.getMessage());
                     }
                 }
             });

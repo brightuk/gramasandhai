@@ -184,6 +184,94 @@
                     android:orientation="horizontal"
                     android:padding="8dp">
 
+                    <!-- Add these cards in your Quick Stats Row or create a new row -->
+
+                    <!-- COD Revenue Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:layout_margin="4dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        app:cardBackgroundColor="@color/cod_revenue_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💵"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:id="@+id/tvCODRevenue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="₹0"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="COD Revenue"
+                                android:textSize="12sp"
+                                android:textColor="@android:color/white" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Online Revenue Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:layout_margin="4dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        app:cardBackgroundColor="@color/online_revenue_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="16dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💳"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:id="@+id/tvOnlineRevenue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="₹0"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Online Revenue"
+                                android:textSize="12sp"
+                                android:textColor="@android:color/white" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
 <!--                    <com.google.android.material.card.MaterialCardView-->
 <!--                        android:layout_width="0dp"-->
 <!--                        android:layout_height="120dp"-->
@@ -414,6 +502,7 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
+
                 <!-- Download Section -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardDownload"
@@ -451,6 +540,13 @@
                                 android:layout_height="wrap_content"
                                 android:text="Today's Report"
                                 android:checked="true" />
+
+                            <RadioButton
+                                android:id="@+id/radioThisMonth"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="This Month Report"
+                                android:layout_marginTop="8dp" />
 
                             <RadioButton
                                 android:id="@+id/radioCustom"

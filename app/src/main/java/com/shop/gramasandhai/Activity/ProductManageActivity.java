@@ -10,7 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,12 +18,10 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -53,12 +51,16 @@ import okhttp3.Response;
 public class ProductManageActivity extends AppCompatActivity {
 
     private RecyclerView rvItems;
-    private ProgressBar progressBar; // Changed from LottieAnimationView to ProgressBar
     private TextView tvTotalItems, tvActiveItems, tvTotalLabel, tvBreadcrumb;
     private MaterialCardView cardBreadcrumb, cardSearchFilter;
     private TextInputEditText etSearch;
     private ImageButton btnBack;
     private FloatingActionButton fabAddProduct;
+    private LinearLayout shimmerLayout, emptyLayout;
+    private ShimmerFrameLayout shimmerTotal, shimmerActive, shimmerSearch;
+
+    // ADDED: Content layout references for lazy loading
+    private LinearLayout contentTotal, contentActive, contentSearch;
 
     // Adapters
     private CategoryAdapter categoryAdapter;
@@ -76,7 +78,7 @@ public class ProductManageActivity extends AppCompatActivity {
     private List<Product> filteredProductList = new ArrayList<>();
 
     // Current state
-    private String currentLevel = "categories"; // categories, subcategories, products
+    private String currentLevel = "categories";
     private String selectedCategoryId = "";
     private String selectedCategoryName = "";
     private String selectedSubcategoryId = "";
@@ -93,17 +95,15 @@ public class ProductManageActivity extends AppCompatActivity {
         setupAdapters();
         setupClickListeners();
 
-        // Load categories
-        loadCategories();
+        // Load initial data with shimmer effect
+        loadInitialData();
     }
 
     private void initializeViews() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         rvItems = findViewById(R.id.rvItems);
-        progressBar = findViewById(R.id.progressBar); // Updated to ProgressBar
         tvTotalItems = findViewById(R.id.tvTotalItems);
         tvActiveItems = findViewById(R.id.tvActiveItems);
         tvTotalLabel = findViewById(R.id.tvTotalLabel);
@@ -113,8 +113,22 @@ public class ProductManageActivity extends AppCompatActivity {
         etSearch = findViewById(R.id.etSearch);
         btnBack = findViewById(R.id.btnBack);
         fabAddProduct = findViewById(R.id.fabAddProduct);
-    }
 
+        // Shimmer views
+        shimmerLayout = findViewById(R.id.shimmerLayout);
+        emptyLayout = findViewById(R.id.emptyLayout);
+        shimmerTotal = findViewById(R.id.shimmerTotal);
+        shimmerActive = findViewById(R.id.shimmerActive);
+        shimmerSearch = findViewById(R.id.shimmerSearch);
+
+        // ADDED: Initialize content layout references
+        contentTotal = findViewById(R.id.contentTotal);
+        contentActive = findViewById(R.id.contentActive);
+        contentSearch = findViewById(R.id.contentSearch);
+
+        // Initialize with loading state
+        showFullLoadingState(true);
+    }
 
     private void setupToolbar() {
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -124,9 +138,9 @@ public class ProductManageActivity extends AppCompatActivity {
     }
 
     private void setupAdapters() {
-        categoryAdapter = new CategoryAdapter(this, categoryList);
-        subcategoryAdapter = new SubcategoryAdapter(this, subcategoryList);
-        productAdapter = new ProductAdapter(this, productList);
+        categoryAdapter = new CategoryAdapter(this, new ArrayList<>());
+        subcategoryAdapter = new SubcategoryAdapter(this, new ArrayList<>());
+        productAdapter = new ProductAdapter(this, new ArrayList<>());
 
         rvItems.setLayoutManager(new LinearLayoutManager(this));
         rvItems.setAdapter(categoryAdapter);
@@ -161,7 +175,7 @@ public class ProductManageActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        // Search functionality with TextWatcher
+        // Search functionality
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -176,11 +190,78 @@ public class ProductManageActivity extends AppCompatActivity {
         });
     }
 
+    private void loadInitialData() {
+        showFullLoadingState(true);
+        loadCategories();
+    }
+
     private void loadCategories() {
-        showLoading(true);
         currentLevel = "categories";
         updateBreadcrumb("Categories");
-        Log.d("tsssssddd", shopId());
+        Log.d("API_DEBUG", "Loading categories for Shop ID: " + shopId());
+
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(Attributes.Main_Url + "shop/" + shopId() + "/category")
+                .get()
+                .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> {
+                    showFullLoadingState(false);
+                    Toast.makeText(ProductManageActivity.this,
+                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    showEmptyState(true);
+                });
+                Log.e("API_ERROR", "Categories request failed: " + e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBodyString = response.body() != null ? response.body().string() : "";
+                Log.d("API_RESPONSE", "Categories raw response: " + responseBodyString);
+
+                runOnUiThread(() -> {
+                    try {
+                        JSONObject responseObject = new JSONObject(responseBodyString);
+
+                        if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
+                            parseCategoriesData(responseObject);
+
+                            // Show categories immediately after parsing
+                            showCategories();
+
+                            // Then load products data in background
+                            loadProductsData();
+                        } else {
+                            String errorMsg = responseObject.optString("message", "Failed to load categories");
+                            Toast.makeText(ProductManageActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                            showFullLoadingState(false);
+                            showEmptyState(true);
+                        }
+                    } catch (JSONException e) {
+                        Log.e("JSON_ERROR", "Categories parsing failed: " + e.getMessage());
+                        Toast.makeText(ProductManageActivity.this,
+                                "Error parsing categories: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        showFullLoadingState(false);
+                        showEmptyState(true);
+                    } catch (Exception e) {
+                        Log.e("PARSE_ERROR", "Unexpected error: " + e.getMessage());
+                        Toast.makeText(ProductManageActivity.this,
+                                "Unexpected error occurred", Toast.LENGTH_LONG).show();
+                        showFullLoadingState(false);
+                        showEmptyState(true);
+                    }
+                });
+            }
+        });
+    }
+
+    private void loadProductsData() {
+        Log.d("API_DEBUG", "Loading products data for Shop ID: " + shopId());
 
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
@@ -193,34 +274,32 @@ public class ProductManageActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    showLoading(false);
-                    Toast.makeText(ProductManageActivity.this,
-                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    // Even if products data fails, we still show the categories
+                    showStatsLoading(false);
+                    Log.e("API_ERROR", "Products request failed: " + e.getMessage());
                 });
-                Log.e("API_ERROR", "Request failed: " + e.getMessage());
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 String responseBodyString = response.body() != null ? response.body().string() : "";
-                Log.d("Products_RESPONSE", responseBodyString);
+                Log.d("API_RESPONSE", "Products raw response: " + responseBodyString);
 
                 runOnUiThread(() -> {
-                    showLoading(false);
+                    showStatsLoading(false);
                     try {
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
                         if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
-                            parseCategoriesData(responseObject);
-                            showCategories();
+                            parseProductsData(responseObject);
+                            updateAllStats();
                         } else {
-                            Toast.makeText(ProductManageActivity.this,
-                                    "Failed to load data", Toast.LENGTH_LONG).show();
+                            Log.e("API_ERROR", "Failed to load products data: " + responseObject.optString("message", ""));
                         }
                     } catch (JSONException e) {
-                        Log.e("JSON_ERROR", "Parsing failed: " + e.getMessage());
-                        Toast.makeText(ProductManageActivity.this,
-                                "Error parsing data", Toast.LENGTH_LONG).show();
+                        Log.e("JSON_ERROR", "Products parsing failed: " + e.getMessage());
+                    } catch (Exception e) {
+                        Log.e("PARSE_ERROR", "Unexpected error: " + e.getMessage());
                     }
                 });
             }
@@ -229,53 +308,74 @@ public class ProductManageActivity extends AppCompatActivity {
 
     private void parseCategoriesData(JSONObject responseObject) throws JSONException {
         categoryList.clear();
+
+        if (responseObject.has("categories") && !responseObject.isNull("categories")) {
+            JSONArray categoriesArray = responseObject.getJSONArray("categories");
+            Log.d("PARSE_DEBUG", "Categories count: " + categoriesArray.length());
+
+            for (int i = 0; i < categoriesArray.length(); i++) {
+                JSONObject categoryObj = categoriesArray.getJSONObject(i);
+
+                Category category = new Category();
+                category.setId(categoryObj.optString("category_id", ""));
+                category.setName(categoryObj.optString("category_name", ""));
+                category.setSubtitle(categoryObj.optString("category_subtitle", ""));
+
+                String imageUrl = categoryObj.optString("category_image", "");
+                if (imageUrl != null && !imageUrl.equals("null") && !imageUrl.isEmpty()) {
+                    category.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
+                } else {
+                    category.setImageUrl("");
+                }
+
+                category.setStatus(categoryObj.optString("category_status", "0"));
+                category.setPosition(categoryObj.optString("position", "0"));
+                category.setSubcategoriesCount(categoryObj.optString("subcategory_count", "0"));
+
+                categoryList.add(category);
+            }
+        }
+
+        filteredCategoryList = new ArrayList<>(categoryList);
+        Log.d("PARSE_DEBUG", "Final categories count: " + categoryList.size());
+    }
+
+    private void parseProductsData(JSONObject responseObject) throws JSONException {
         subcategoryList.clear();
         productList.clear();
 
-        // Parse categories
-        JSONArray categoriesArray = responseObject.getJSONArray("categories");
-        for (int i = 0; i < categoriesArray.length(); i++) {
-            JSONObject categoryObj = categoriesArray.getJSONObject(i);
+        if (responseObject.has("subcategories") && !responseObject.isNull("subcategories")) {
+            JSONArray subcategoriesArray = responseObject.getJSONArray("subcategories");
+            Log.d("PARSE_DEBUG", "Subcategories count: " + subcategoriesArray.length());
 
-            Category category = new Category();
-            category.setId(categoryObj.getString("category_id"));
-            category.setName(categoryObj.getString("category_name"));
-            category.setSubtitle(categoryObj.getString("category_subtitle"));
+            for (int i = 0; i < subcategoriesArray.length(); i++) {
+                JSONObject subcategoryObj = subcategoriesArray.getJSONObject(i);
 
-            // Build full image URL
-            String imageUrl = categoryObj.getString("category_image");
-            category.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
-            category.setStatus(categoryObj.getString("category_status"));
-            category.setPosition(categoryObj.getString("position"));
-            category.setSubcategoriesCount(categoryObj.getString("subcategory_count"));
+                Subcategory subcategory = new Subcategory();
+                subcategory.setId(subcategoryObj.optString("subcategory_id", ""));
+                subcategory.setName(subcategoryObj.optString("sub_category_name", ""));
+                subcategory.setSubtitle(subcategoryObj.optString("sub_category_subtitle", ""));
 
-            categoryList.add(category);
+                String imageUrl = subcategoryObj.optString("sub_category_image", "");
+                if (imageUrl != null && !imageUrl.equals("null") && !imageUrl.isEmpty()) {
+                    subcategory.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
+                } else {
+                    subcategory.setImageUrl("");
+                }
+
+                subcategory.setStatus(subcategoryObj.optString("subcategory_status", "0"));
+                subcategory.setCategoryId(subcategoryObj.optString("category_id", ""));
+                subcategory.setCategoryName(subcategoryObj.optString("main_category", ""));
+                subcategory.setProductCount(subcategoryObj.optString("products_count", "0"));
+
+                subcategoryList.add(subcategory);
+            }
         }
 
-        // Parse subcategories
-        JSONArray subcategoriesArray = responseObject.getJSONArray("subcategories");
-        for (int i = 0; i < subcategoriesArray.length(); i++) {
-            JSONObject subcategoryObj = subcategoriesArray.getJSONObject(i);
-
-            Subcategory subcategory = new Subcategory();
-            subcategory.setId(subcategoryObj.getString("subcategory_id"));
-            subcategory.setName(subcategoryObj.getString("sub_category_name"));
-            subcategory.setSubtitle(subcategoryObj.getString("sub_category_subtitle"));
-
-            // Build full image URL
-            String imageUrl = subcategoryObj.getString("sub_category_image");
-            subcategory.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
-            subcategory.setStatus(subcategoryObj.getString("subcategory_status"));
-            subcategory.setCategoryId(subcategoryObj.getString("category_id"));
-            subcategory.setCategoryName(subcategoryObj.getString("main_category"));
-            subcategory.setProductCount(subcategoryObj.getString("products_count"));
-
-            subcategoryList.add(subcategory);
-        }
-
-        // Parse products
         if (responseObject.has("products") && !responseObject.isNull("products")) {
             JSONArray productsArray = responseObject.getJSONArray("products");
+            Log.d("PARSE_DEBUG", "Products count: " + productsArray.length());
+
             for (int i = 0; i < productsArray.length(); i++) {
                 JSONObject productObj = productsArray.getJSONObject(i);
 
@@ -284,25 +384,31 @@ public class ProductManageActivity extends AppCompatActivity {
                 product.setName(productObj.optString("prod_name", ""));
                 product.setDescription(productObj.optString("description", ""));
 
-                // Build full image URL
                 String imageUrl = productObj.optString("main_image", "");
-                product.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
-                product.setStatus(String.valueOf(productObj.optInt("status")));
+                if (imageUrl != null && !imageUrl.equals("null") && !imageUrl.isEmpty()) {
+                    product.setImageUrl(Attributes.Root_Url + "uploads/images/" + imageUrl);
+                } else {
+                    product.setImageUrl("");
+                }
+
+                product.setStatus(productObj.optString("status", "0"));
                 product.setCategoryId(productObj.optString("category_id", ""));
                 product.setSubcategoryId(productObj.optString("subcategory_id", ""));
+                product.setPrice(productObj.optString("prod_price", "0"));
+                product.setStock(productObj.optString("stock", "0"));
+                product.setDiscountValue(productObj.optString("disc_value", "0"));
 
                 productList.add(product);
             }
         }
 
-        // Pass the full API response to product adapter for variants data
         productAdapter.setApiResponseData(responseObject);
-
-
-        // Initialize filtered lists with all data
-        filteredCategoryList = new ArrayList<>(categoryList);
         filteredSubcategoryList = new ArrayList<>(subcategoryList);
         filteredProductList = new ArrayList<>(productList);
+
+        Log.d("PARSE_DEBUG", "Final counts - Categories: " + categoryList.size() +
+                ", Subcategories: " + subcategoryList.size() +
+                ", Products: " + productList.size());
     }
 
     private void showCategories() {
@@ -310,17 +416,26 @@ public class ProductManageActivity extends AppCompatActivity {
         updateBreadcrumb("Categories");
         rvItems.setAdapter(categoryAdapter);
         categoryAdapter.updateList(filteredCategoryList);
-        updateStats(filteredCategoryList.size(), getActiveCount(filteredCategoryList));
-        tvTotalLabel.setText("Categories");
+
+        // Calculate stats for current filtered list
+        int totalCategories = filteredCategoryList.size();
+        int activeCategories = getActiveCount(filteredCategoryList);
+        updateStats(totalCategories, activeCategories);
+
+        tvTotalLabel.setText("Total Categories");
         cardBreadcrumb.setVisibility(View.GONE);
 
-        // Clear search when showing categories
+        showEmptyState(filteredCategoryList.isEmpty());
+        showFullLoadingState(false);
         etSearch.setText("");
+
+        Log.d("STATS_DEBUG", "Categories - Total: " + totalCategories + ", Active: " + activeCategories);
     }
 
     private void loadSubcategories(String categoryId) {
         currentLevel = "subcategories";
         updateBreadcrumb(selectedCategoryName);
+        showFullLoadingState(true);
 
         // Filter subcategories for the selected category
         filteredSubcategoryList.clear();
@@ -330,24 +445,37 @@ public class ProductManageActivity extends AppCompatActivity {
             }
         }
 
-        showSubcategories();
+        Log.d("SUBCAT_DEBUG", "Loading subcategories for category: " + categoryId +
+                ", Found: " + filteredSubcategoryList.size());
+
+        // Simulate loading delay for better UX
+        rvItems.postDelayed(this::showSubcategories, 600);
     }
 
     private void showSubcategories() {
         currentLevel = "subcategories";
         rvItems.setAdapter(subcategoryAdapter);
         subcategoryAdapter.updateList(filteredSubcategoryList);
-        updateStats(filteredSubcategoryList.size(), getActiveCount(filteredSubcategoryList));
-        tvTotalLabel.setText("Subcategories");
+
+        // Calculate stats for current filtered subcategories
+        int totalSubcategories = filteredSubcategoryList.size();
+        int activeSubcategories = getActiveCount(filteredSubcategoryList);
+        updateStats(totalSubcategories, activeSubcategories);
+
+        tvTotalLabel.setText("Total Subcategories");
         cardBreadcrumb.setVisibility(View.VISIBLE);
 
-        // Clear search when showing subcategories
+        showEmptyState(filteredSubcategoryList.isEmpty());
+        showFullLoadingState(false);
         etSearch.setText("");
+
+        Log.d("STATS_DEBUG", "Subcategories - Total: " + totalSubcategories + ", Active: " + activeSubcategories);
     }
 
     private void loadProducts(String subcategoryId) {
         currentLevel = "products";
         updateBreadcrumb(selectedSubcategoryName);
+        showFullLoadingState(true);
 
         // Filter products for the selected subcategory
         filteredProductList.clear();
@@ -357,20 +485,31 @@ public class ProductManageActivity extends AppCompatActivity {
             }
         }
 
-        showProducts();
+        Log.d("PRODUCT_DEBUG", "Loading products for subcategory: " + subcategoryId +
+                ", Found: " + filteredProductList.size());
+
+        // Simulate loading delay for better UX
+        rvItems.postDelayed(this::showProducts, 600);
     }
 
     private void showProducts() {
         currentLevel = "products";
         rvItems.setAdapter(productAdapter);
         productAdapter.updateList(filteredProductList);
-        updateStats(filteredProductList.size(), getActiveCount(filteredProductList));
-        Log.d("productsize",String.valueOf(filteredProductList.size())+" productcount :"+getActiveCount(filteredProductList));
-        tvTotalLabel.setText("Products");
+
+        // Calculate stats for current filtered products
+        int totalProducts = filteredProductList.size();
+        int activeProducts = getActiveCount(filteredProductList);
+        updateStats(totalProducts, activeProducts);
+
+        tvTotalLabel.setText("Total Products");
         cardBreadcrumb.setVisibility(View.VISIBLE);
 
-        // Clear search when showing products
+        showEmptyState(filteredProductList.isEmpty());
+        showFullLoadingState(false);
         etSearch.setText("");
+
+        Log.d("STATS_DEBUG", "Products - Total: " + totalProducts + ", Active: " + activeProducts);
     }
 
     private void navigateBack() {
@@ -380,6 +519,9 @@ public class ProductManageActivity extends AppCompatActivity {
                 break;
             case "products":
                 loadSubcategories(selectedCategoryId);
+                break;
+            default:
+                finish();
                 break;
         }
     }
@@ -403,23 +545,46 @@ public class ProductManageActivity extends AppCompatActivity {
     private void updateStats(int total, int active) {
         tvTotalItems.setText(String.valueOf(total));
         tvActiveItems.setText(String.valueOf(active));
-        Log.d("tvActiveItems",String.valueOf(active));
+        Log.d("STATS_UPDATE", "Updated stats - Total: " + total + ", Active: " + active);
     }
 
+    private void updateAllStats() {
+        // This method updates stats based on current level and filtered data
+        switch (currentLevel) {
+            case "categories":
+                updateStats(filteredCategoryList.size(), getActiveCount(filteredCategoryList));
+                break;
+            case "subcategories":
+                updateStats(filteredSubcategoryList.size(), getActiveCount(filteredSubcategoryList));
+                break;
+            case "products":
+                updateStats(filteredProductList.size(), getActiveCount(filteredProductList));
+                break;
+        }
+    }
 
-
-
+    // Improved active count calculation
     private int getActiveCount(List<?> items) {
         int activeCount = 0;
         for (Object item : items) {
             if (item instanceof Category) {
-                if ("1".equals(((Category) item).getStatus())) activeCount++;
+                Category category = (Category) item;
+                if ("1".equals(category.getStatus()) || "active".equalsIgnoreCase(category.getStatus())) {
+                    activeCount++;
+                }
             } else if (item instanceof Subcategory) {
-                if ("1".equals(((Subcategory) item).getStatus())) activeCount++;
+                Subcategory subcategory = (Subcategory) item;
+                if ("1".equals(subcategory.getStatus()) || "active".equalsIgnoreCase(subcategory.getStatus())) {
+                    activeCount++;
+                }
             } else if (item instanceof Product) {
-                if ("1".equals(((Product) item).getStatus())) activeCount++;
+                Product product = (Product) item;
+                if ("1".equals(product.getStatus()) || "active".equalsIgnoreCase(product.getStatus())) {
+                    activeCount++;
+                }
             }
         }
+        Log.d("ACTIVE_COUNT", "Active items: " + activeCount + " out of " + items.size());
         return activeCount;
     }
 
@@ -454,6 +619,7 @@ public class ProductManageActivity extends AppCompatActivity {
 
         categoryAdapter.updateList(filteredCategoryList);
         updateStats(filteredCategoryList.size(), getActiveCount(filteredCategoryList));
+        showEmptyState(filteredCategoryList.isEmpty());
     }
 
     private void filterSubcategories(String query) {
@@ -481,6 +647,7 @@ public class ProductManageActivity extends AppCompatActivity {
         filteredSubcategoryList.addAll(tempFilteredList);
         subcategoryAdapter.updateList(filteredSubcategoryList);
         updateStats(filteredSubcategoryList.size(), getActiveCount(filteredSubcategoryList));
+        showEmptyState(filteredSubcategoryList.isEmpty());
     }
 
     private void filterProducts(String query) {
@@ -508,24 +675,100 @@ public class ProductManageActivity extends AppCompatActivity {
         filteredProductList.addAll(tempFilteredList);
         productAdapter.updateList(filteredProductList);
         updateStats(filteredProductList.size(), getActiveCount(filteredProductList));
+        showEmptyState(filteredProductList.isEmpty());
     }
 
-    private void showLoading(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-        rvItems.setVisibility(show ? View.GONE : View.VISIBLE);
+    // ENHANCED: Complete lazy loading methods
+    private void showFullLoadingState(boolean show) {
+        if (show) {
+            // Show all shimmer layouts
+            shimmerTotal.setVisibility(View.VISIBLE);
+            shimmerActive.setVisibility(View.VISIBLE);
+            shimmerSearch.setVisibility(View.VISIBLE);
+            shimmerLayout.setVisibility(View.VISIBLE);
+
+            // Hide all content layouts
+            contentTotal.setVisibility(View.GONE);
+            contentActive.setVisibility(View.GONE);
+            contentSearch.setVisibility(View.GONE);
+            rvItems.setVisibility(View.GONE);
+            emptyLayout.setVisibility(View.GONE);
+            cardBreadcrumb.setVisibility(View.GONE);
+
+            // Start all shimmer animations
+            shimmerTotal.startShimmer();
+            shimmerActive.startShimmer();
+            shimmerSearch.startShimmer();
+        } else {
+            // Hide all shimmer layouts
+            shimmerTotal.setVisibility(View.GONE);
+            shimmerActive.setVisibility(View.GONE);
+            shimmerSearch.setVisibility(View.GONE);
+            shimmerLayout.setVisibility(View.GONE);
+
+            // Show all content layouts
+            contentTotal.setVisibility(View.VISIBLE);
+            contentActive.setVisibility(View.VISIBLE);
+            contentSearch.setVisibility(View.VISIBLE);
+            rvItems.setVisibility(View.VISIBLE);
+
+            // Stop all shimmer animations
+            shimmerTotal.stopShimmer();
+            shimmerActive.stopShimmer();
+            shimmerSearch.stopShimmer();
+        }
     }
 
-    private void showAddDialog() {
-        switch (currentLevel) {
-            case "categories":
-                Toast.makeText(this, "Add Category", Toast.LENGTH_SHORT).show();
-                break;
-            case "subcategories":
-                Toast.makeText(this, "Add Subcategory to " + selectedCategoryName, Toast.LENGTH_SHORT).show();
-                break;
-            case "products":
-                Toast.makeText(this, "Add Product to " + selectedSubcategoryName, Toast.LENGTH_SHORT).show();
-                break;
+    private void showStatsLoading(boolean show) {
+        if (show) {
+            shimmerTotal.setVisibility(View.VISIBLE);
+            shimmerActive.setVisibility(View.VISIBLE);
+            contentTotal.setVisibility(View.GONE);
+            contentActive.setVisibility(View.GONE);
+            shimmerTotal.startShimmer();
+            shimmerActive.startShimmer();
+        } else {
+            shimmerTotal.setVisibility(View.GONE);
+            shimmerActive.setVisibility(View.GONE);
+            contentTotal.setVisibility(View.VISIBLE);
+            contentActive.setVisibility(View.VISIBLE);
+            shimmerTotal.stopShimmer();
+            shimmerActive.stopShimmer();
+        }
+    }
+
+    private void showSearchLoading(boolean show) {
+        if (show) {
+            shimmerSearch.setVisibility(View.VISIBLE);
+            contentSearch.setVisibility(View.GONE);
+            shimmerSearch.startShimmer();
+        } else {
+            shimmerSearch.setVisibility(View.GONE);
+            contentSearch.setVisibility(View.VISIBLE);
+            shimmerSearch.stopShimmer();
+        }
+    }
+
+    private void showRecyclerViewLoading(boolean show) {
+        if (show) {
+            shimmerLayout.setVisibility(View.VISIBLE);
+            rvItems.setVisibility(View.GONE);
+            emptyLayout.setVisibility(View.GONE);
+        } else {
+            shimmerLayout.setVisibility(View.GONE);
+            rvItems.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void showEmptyState(boolean show) {
+        if (show) {
+            emptyLayout.setVisibility(View.VISIBLE);
+            rvItems.setVisibility(View.GONE);
+            shimmerLayout.setVisibility(View.GONE);
+        } else {
+            emptyLayout.setVisibility(View.GONE);
+            rvItems.setVisibility(View.VISIBLE);
+            shimmerLayout.setVisibility(View.GONE);
         }
     }
 
@@ -554,9 +797,42 @@ public class ProductManageActivity extends AppCompatActivity {
             onBackPressed();
             return true;
         } else if (item.getItemId() == R.id.action_refresh) {
-            loadCategories();
+            loadInitialData();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (!currentLevel.equals("categories")) {
+            navigateBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Restart shimmer animations if they are visible
+        if (shimmerTotal.getVisibility() == View.VISIBLE) {
+            shimmerTotal.startShimmer();
+        }
+        if (shimmerActive.getVisibility() == View.VISIBLE) {
+            shimmerActive.startShimmer();
+        }
+        if (shimmerSearch.getVisibility() == View.VISIBLE) {
+            shimmerSearch.startShimmer();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Stop all shimmer animations to save battery
+        shimmerTotal.stopShimmer();
+        shimmerActive.stopShimmer();
+        shimmerSearch.stopShimmer();
     }
 }

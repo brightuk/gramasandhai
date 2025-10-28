@@ -12,6 +12,7 @@ public class Product {
     private String subcategoryId; // Added this field
     private String categoryName;
     private String subcategoryName;
+    private String DiscountValue;
 
     // Constructors
     public Product() {}
@@ -49,4 +50,12 @@ public class Product {
 
     public String getSubcategoryName() { return subcategoryName; }
     public void setSubcategoryName(String subcategoryName) { this.subcategoryName = subcategoryName; }
+
+    public String getDiscountValue() {
+        return DiscountValue;
+    }
+
+    public void setDiscountValue(String setDiscountValue) {
+        this.DiscountValue = setDiscountValue;
+    }
 }

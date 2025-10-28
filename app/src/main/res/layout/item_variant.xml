@@ -17,6 +17,19 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="20dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteVariant"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Delete"
+            android:textSize="12sp"
+            style="@style/Widget.Material3.Button.TextButton"
+            app:icon="@drawable/ic_delete"
+            app:iconGravity="textStart"
+            android:layout_gravity="right"
+            app:iconPadding="4dp"
+            app:iconTint="@color/errorColor"
+            android:textColor="@color/errorColor" />
 
         <!-- Header Section with Variant Info and Status -->
         <LinearLayout
@@ -89,6 +102,7 @@
             </LinearLayout>
 
         </LinearLayout>
+
 
         <!-- Variant ID -->
         <TextView
@@ -321,6 +335,7 @@
                         android:layout_height="0dp"
                         android:layout_weight="1" />
 
+
                     <!-- Discount Badge with Icon -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -349,10 +364,14 @@
                             android:textStyle="bold" />
 
                     </LinearLayout>
+                    <!-- Add this to your item_variant.xml in the action buttons section -->
+
+
 
                 </LinearLayout>
 
             </LinearLayout>
+
 
         </com.google.android.material.card.MaterialCardView>
 

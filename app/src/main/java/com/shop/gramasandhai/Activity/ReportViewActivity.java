@@ -57,6 +57,7 @@ public class ReportViewActivity extends AppCompatActivity {
 
     private Toolbar toolbar;
     private RecyclerView recyclerViewOrders;
+    private TextView tvCODRevenue, tvOnlineRevenue;
     private OrderAdapter orderAdapter;
     private List<Orders> orderList = new ArrayList<>();
     private List<Orders> filteredOrderList = new ArrayList<>();
@@ -81,9 +82,10 @@ public class ReportViewActivity extends AppCompatActivity {
     private MaterialButton btnApplyDateRange, btnCancelDateRange;
 
     // Download Components
+
     private MaterialCardView cardDownload;
     private RadioGroup radioGroupDownloadType;
-    private RadioButton radioToday, radioCustom;
+    private RadioButton radioToday, radioThisMonth, radioCustom; // Added radioThisMonth
     private TextInputEditText etDownloadStartDate, etDownloadEndDate;
     private View layoutCustomDate;
     private MaterialButton btnDownloadReport, btnCancelDownload;
@@ -124,21 +126,14 @@ public class ReportViewActivity extends AppCompatActivity {
         loadingOverlay = findViewById(R.id.loadingOverlay);
         fabRefresh = findViewById(R.id.fabRefresh);
 
-        // Summary cards - FIXED: Check if these views exist in your XML
+        // Add these in initializeViews() method
+        tvCODRevenue = findViewById(R.id.tvCODRevenue);
+        tvOnlineRevenue = findViewById(R.id.tvOnlineRevenue);
+
+        // Summary cards
         tvCompletedOrders = findViewById(R.id.tvCompletedOrders);
         tvTotalRevenue = findViewById(R.id.tvTotalRevenue);
         tvOrderCount = findViewById(R.id.tvOrderCount);
-
-        // Log if any TextView is null
-        if (tvCompletedOrders == null) {
-            Log.e(TAG, "tvCompletedOrders is NULL - check XML layout");
-        }
-        if (tvTotalRevenue == null) {
-            Log.e(TAG, "tvTotalRevenue is NULL - check XML layout");
-        }
-        if (tvOrderCount == null) {
-            Log.e(TAG, "tvOrderCount is NULL - check XML layout");
-        }
 
         // Filters
         btnDateFilter = findViewById(R.id.btnDateFilter);
@@ -158,6 +153,7 @@ public class ReportViewActivity extends AppCompatActivity {
         cardDownload = findViewById(R.id.cardDownload);
         radioGroupDownloadType = findViewById(R.id.radioGroupDownloadType);
         radioToday = findViewById(R.id.radioToday);
+        radioThisMonth = findViewById(R.id.radioThisMonth); // Initialize new radio button
         radioCustom = findViewById(R.id.radioCustom);
         etDownloadStartDate = findViewById(R.id.etDownloadStartDate);
         etDownloadEndDate = findViewById(R.id.etDownloadEndDate);
@@ -165,12 +161,14 @@ public class ReportViewActivity extends AppCompatActivity {
         btnDownloadReport = findViewById(R.id.btnDownloadReport);
         btnCancelDownload = findViewById(R.id.btnCancelDownload);
 
-        // Set default status filter to show ALL orders initially
-        btnStatusFilter.setText("All Status");
-        chipStatusFilter.setVisibility(View.GONE);
+        // SET DEFAULT STATUS FILTER TO SHOW ONLY COMPLETED ORDERS
+        currentStatusFilter = "COM"; // Only completed orders
+        btnStatusFilter.setText("Completed");
+        chipStatusFilter.setText("Completed");
+        chipStatusFilter.setVisibility(View.VISIBLE);
         updateActiveFiltersVisibility();
 
-        Log.d(TAG, "initializeViews: Views initialized successfully");
+        Log.d(TAG, "initializeViews: Views initialized successfully - Default filter set to Completed");
     }
 
     private void initializeDatePickers() {
@@ -281,6 +279,7 @@ public class ReportViewActivity extends AppCompatActivity {
         });
 
         // Radio group listener
+        // Radio group listener
         radioGroupDownloadType.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.radioToday) {
                 if (layoutCustomDate != null) {
@@ -293,12 +292,34 @@ public class ReportViewActivity extends AppCompatActivity {
                 if (etDownloadEndDate != null) {
                     etDownloadEndDate.setText(today);
                 }
+            } else if (checkedId == R.id.radioThisMonth) {
+                if (layoutCustomDate != null) {
+                    layoutCustomDate.setVisibility(View.GONE);
+                }
+                // Set dates for current month
+                Calendar calendar = Calendar.getInstance();
+                String firstDayOfMonth = getFirstDayOfMonth();
+                String lastDayOfMonth = dateFormatter.format(calendar.getTime());
+
+                if (etDownloadStartDate != null) {
+                    etDownloadStartDate.setText(firstDayOfMonth);
+                    etDownloadStartDate.setText(firstDayOfMonth);
+                }
+                if (etDownloadEndDate != null) {
+                    etDownloadEndDate.setText(lastDayOfMonth);
+                }
             } else if (checkedId == R.id.radioCustom) {
                 if (layoutCustomDate != null) {
                     layoutCustomDate.setVisibility(View.VISIBLE);
                 }
             }
         });
+    }
+
+    private String getFirstDayOfMonth() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        return dateFormatter.format(calendar.getTime());
     }
 
     private void applyFilters() {
@@ -308,8 +329,9 @@ public class ReportViewActivity extends AppCompatActivity {
         List<Orders> tempFilteredList = new ArrayList<>();
 
         for (Orders order : orderList) {
-            boolean statusMatch = currentStatusFilter.equals("ALL") ||
-                    (order.getOrderStatus() != null && order.getOrderStatus().equalsIgnoreCase(currentStatusFilter));
+            // FORCE ONLY COMPLETED ORDERS - Remove the ALL status check
+            boolean statusMatch = order.getOrderStatus() != null &&
+                    order.getOrderStatus().equalsIgnoreCase("COM");
 
             boolean dateMatch = currentDateFilter.isEmpty() ||
                     isDateInRange(order.getCreatedAt(), selectedStartDate, selectedEndDate);
@@ -319,7 +341,7 @@ public class ReportViewActivity extends AppCompatActivity {
             }
         }
 
-        Log.d(TAG, "Orders after filter: " + tempFilteredList.size());
+        Log.d(TAG, "Completed orders after filter: " + tempFilteredList.size());
 
         runOnUiThread(() -> {
             // Update the adapter with filtered data
@@ -327,7 +349,7 @@ public class ReportViewActivity extends AppCompatActivity {
             updateOrderCount(tempFilteredList.size());
             updateSummaryCards(tempFilteredList);
             checkEmptyState(tempFilteredList.size());
-            Log.d(TAG, "Adapter notified with " + tempFilteredList.size() + " filtered items");
+            Log.d(TAG, "Adapter notified with " + tempFilteredList.size() + " completed orders");
         });
     }
 
@@ -342,17 +364,27 @@ public class ReportViewActivity extends AppCompatActivity {
     private void updateSummaryCards(List<Orders> orders) {
         runOnUiThread(() -> {
             try {
-                int completedOrders = 0;
+                int completedOrders = orders.size(); // All orders in the list are completed now
                 double totalRevenue = 0.0;
+                double codRevenue = 0.0;
+                double onlineRevenue = 0.0;
 
                 for (Orders order : orders) {
-                    if (order.getOrderStatus() != null && "COM".equals(order.getOrderStatus())) {
-                        completedOrders++;
-                        try {
-                            totalRevenue += Double.parseDouble(order.getAmount());
-                        } catch (NumberFormatException e) {
-                            Log.e(TAG, "Invalid amount: " + order.getAmount());
+                    try {
+                        double amount = Double.parseDouble(order.getAmount());
+                        totalRevenue += amount;
+
+                        // Calculate payment method specific revenue
+                        if (order.getPaymentMethod() != null) {
+                            if (order.getPaymentMethod().equalsIgnoreCase("COD")) {
+                                codRevenue += amount;
+                            } else {
+                                // Consider all non-COD as online payments
+                                onlineRevenue += amount;
+                            }
                         }
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "Invalid amount: " + order.getAmount());
                     }
                 }
 
@@ -362,8 +394,17 @@ public class ReportViewActivity extends AppCompatActivity {
                 if (tvTotalRevenue != null) {
                     tvTotalRevenue.setText("₹" + String.format(Locale.US, "%.2f", totalRevenue));
                 }
+                if (tvCODRevenue != null) {
+                    tvCODRevenue.setText("₹" + String.format(Locale.US, "%.2f", codRevenue));
+                }
+                if (tvOnlineRevenue != null) {
+                    tvOnlineRevenue.setText("₹" + String.format(Locale.US, "%.2f", onlineRevenue));
+                }
 
-                Log.d(TAG, "Summary updated - Completed: " + completedOrders + ", Revenue: " + totalRevenue);
+                Log.d(TAG, "Summary updated - Completed: " + completedOrders +
+                        ", Total Revenue: " + totalRevenue +
+                        ", COD Revenue: " + codRevenue +
+                        ", Online Revenue: " + onlineRevenue);
             } catch (Exception e) {
                 Log.e(TAG, "Error in updateSummaryCards: " + e.getMessage(), e);
             }
@@ -488,6 +529,9 @@ public class ReportViewActivity extends AppCompatActivity {
             String today = dateFormatter.format(new Date());
             startDate = today;
             endDate = today;
+        } else if (radioThisMonth.isChecked()) {
+            startDate = getFirstDayOfMonth();
+            endDate = dateFormatter.format(new Date());
         } else {
             startDate = etDownloadStartDate.getText().toString().trim();
             endDate = etDownloadEndDate.getText().toString().trim();
@@ -505,41 +549,53 @@ public class ReportViewActivity extends AppCompatActivity {
     private void generatePrintReport(String startDate, String endDate) {
         showLoading(true);
 
-        // Filter orders for the selected date range
+        // Filter ONLY COMPLETED orders for the selected date range
         List<Orders> reportOrders = new ArrayList<>();
         for (Orders order : orderList) {
-            if (isDateInRange(order.getCreatedAt(), startDate, endDate)) {
+            if (isDateInRange(order.getCreatedAt(), startDate, endDate) &&
+                    "COM".equals(order.getOrderStatus())) {
                 reportOrders.add(order);
             }
         }
 
-        // Calculate report statistics
+        // Calculate report statistics for COMPLETED orders only
         int totalOrders = reportOrders.size();
-        int completedOrders = 0;
         double totalRevenue = 0.0;
+        double codRevenue = 0.0;
+        double onlineRevenue = 0.0;
 
         for (Orders order : reportOrders) {
-            if (order.getOrderStatus() != null && "COM".equals(order.getOrderStatus())) {
-                completedOrders++;
-                try {
-                    totalRevenue += Double.parseDouble(order.getAmount());
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "Invalid amount: " + order.getAmount());
+            try {
+                double amount = Double.parseDouble(order.getAmount());
+                totalRevenue += amount;
+
+                // Calculate payment method specific revenue
+                if (order.getPaymentMethod() != null) {
+                    if (order.getPaymentMethod().equalsIgnoreCase("COD")) {
+                        codRevenue += amount;
+                    } else {
+                        // Consider all non-COD as online payments
+                        onlineRevenue += amount;
+                    }
                 }
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "Invalid amount: " + order.getAmount());
             }
         }
 
         // Generate HTML content for printing
-        String htmlContent = generateHTMLContent(startDate, endDate, reportOrders, totalOrders, completedOrders, totalRevenue);
+        String htmlContent = generateHTMLContent(startDate, endDate, reportOrders,
+                totalOrders, totalRevenue, codRevenue, onlineRevenue);
 
         // Print the report
-        printHTMLContent(htmlContent, "Order_Report_" + startDate + "_to_" + endDate);
+        printHTMLContent(htmlContent, "Completed_Order_Report_" + startDate + "_to_" + endDate);
 
         showLoading(false);
     }
 
     private String generateHTMLContent(String startDate, String endDate, List<Orders> orders,
-                                       int totalOrders, int completedOrders, double totalRevenue) {
+                                       int totalOrders, double totalRevenue,
+                                       double codRevenue, double onlineRevenue) {
         StringBuilder html = new StringBuilder();
 
         html.append("<!DOCTYPE html>");
@@ -555,49 +611,74 @@ public class ReportViewActivity extends AppCompatActivity {
         html.append("th { background-color: #f2f2f2; font-weight: bold; }");
         html.append(".summary { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 10px 0; }");
         html.append(".total { font-weight: bold; color: #2196F3; }");
+        html.append(".revenue-breakdown { display: flex; justify-content: space-between; margin-top: 10px; }");
+        html.append(".revenue-item { flex: 1; padding: 10px; }");
         html.append("</style>");
         html.append("</head>");
         html.append("<body>");
 
-        html.append("<h1>ORDER REPORT</h1>");
+        // Dynamic title based on date range
+        String reportTitle;
+        if (startDate.equals(endDate)) {
+            reportTitle = "TODAY'S COMPLETED ORDERS REPORT - " + startDate;
+        } else if (startDate.equals(getFirstDayOfMonth()) && endDate.equals(dateFormatter.format(new Date()))) {
+            reportTitle = "THIS MONTH COMPLETED ORDERS REPORT";
+        } else {
+            reportTitle = "COMPLETED ORDERS REPORT";
+        }
+
+        html.append("<h1>").append(reportTitle).append("</h1>");
         html.append("<div class='summary'>");
         html.append("<p><strong>Date Range:</strong> ").append(startDate).append(" to ").append(endDate).append("</p>");
         html.append("</div>");
 
+        // ... rest of the HTML content remains the same
         html.append("<h2>SUMMARY</h2>");
         html.append("<div class='summary'>");
-        html.append("<p><strong>Total Orders:</strong> ").append(totalOrders).append("</p>");
-        html.append("<p><strong>Completed Orders:</strong> ").append(completedOrders).append("</p>");
+        html.append("<p><strong>Total Completed Orders:</strong> ").append(totalOrders).append("</p>");
         html.append("<p class='total'><strong>Total Revenue:</strong> ₹").append(String.format(Locale.US, "%.2f", totalRevenue)).append("</p>");
+
+        // Revenue Breakdown
+        html.append("<div class='revenue-breakdown'>");
+        html.append("<div class='revenue-item'>");
+        html.append("<p><strong>COD Revenue:</strong><br>₹").append(String.format(Locale.US, "%.2f", codRevenue)).append("</p>");
+        html.append("</div>");
+        html.append("<div class='revenue-item'>");
+        html.append("<p><strong>Online Revenue:</strong><br>₹").append(String.format(Locale.US, "%.2f", onlineRevenue)).append("</p>");
+        html.append("</div>");
+        html.append("</div>");
+
         html.append("</div>");
 
         html.append("<h2>ORDER DETAILS</h2>");
-        html.append("<table>");
-        html.append("<thead>");
-        html.append("<tr>");
-        html.append("<th>Order ID</th>");
-        html.append("<th>Date</th>");
-        html.append("<th>Customer</th>");
-        html.append("<th>Amount</th>");
-        html.append("<th>Status</th>");
-        html.append("<th>Payment Method</th>");
-        html.append("</tr>");
-        html.append("</thead>");
-        html.append("<tbody>");
-
-        for (Orders order : orders) {
+        if (totalOrders > 0) {
+            html.append("<table>");
+            html.append("<thead>");
             html.append("<tr>");
-            html.append("<td>").append(order.getOrderId() != null ? order.getOrderId() : "N/A").append("</td>");
-            html.append("<td>").append(order.getCreatedAt() != null ? order.getCreatedAt().split(" ")[0] : "N/A").append("</td>");
-            html.append("<td>").append(order.getReceiverName() != null ? order.getReceiverName() : "N/A").append("</td>");
-            html.append("<td>₹").append(order.getAmount() != null ? order.getAmount() : "0").append("</td>");
-            html.append("<td>").append(getStatusText(order.getOrderStatus())).append("</td>");
-            html.append("<td>").append(order.getPaymentMethod() != null ? order.getPaymentMethod() : "N/A").append("</td>");
+            html.append("<th>Order ID</th>");
+            html.append("<th>Date</th>");
+            html.append("<th>Customer</th>");
+            html.append("<th>Amount</th>");
+            html.append("<th>Payment Method</th>");
             html.append("</tr>");
-        }
+            html.append("</thead>");
+            html.append("<tbody>");
 
-        html.append("</tbody>");
-        html.append("</table>");
+            for (Orders order : orders) {
+                html.append("<tr>");
+                html.append("<td>").append(order.getOrderId() != null ? order.getOrderId() : "N/A").append("</td>");
+                html.append("<td>").append(order.getCreatedAt() != null ? order.getCreatedAt().split(" ")[0] : "N/A").append("</td>");
+                html.append("<td>").append(order.getReceiverName() != null ? order.getReceiverName() : "N/A").append("</td>");
+                html.append("<td>₹").append(order.getAmount() != null ? order.getAmount() : "0").append("</td>");
+                html.append("<td>").append(order.getPaymentMethod() != null ? order.getPaymentMethod() : "N/A").append("</td>");
+                html.append("</tr>");
+            }
+
+            html.append("</tbody>");
+            html.append("</table>");
+        } else {
+            html.append("<p style='text-align: center; color: #666; padding: 20px;'>No completed orders found in the selected date range.</p>");
+        }
 
         html.append("<div style='margin-top: 30px; text-align: center; color: #666;'>");
         html.append("<p>Generated on: ").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date())).append("</p>");
@@ -644,40 +725,57 @@ public class ReportViewActivity extends AppCompatActivity {
         }
     }
 
-    private void showStatusFilterDialog() {
-        String[] statuses = {"All Status", "Completed", "Pending", "Processing", "Cancelled"};
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-        builder.setTitle("Filter by Status")
-                .setItems(statuses, (dialog, which) -> {
-                    String selectedStatus = statuses[which];
+//    private void showStatusFilterDialog() {
+//        String[] statuses = {"All Status", "Completed", "Pending", "Processing", "Cancelled"};
+//        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+//        builder.setTitle("Filter by Status")
+//                .setItems(statuses, (dialog, which) -> {
+//                    String selectedStatus = statuses[which];
+//
+//                    if ("All Status".equals(selectedStatus)) {
+//                        currentStatusFilter = "ALL";
+//                        chipStatusFilter.setVisibility(View.GONE);
+//                    } else if ("Completed".equals(selectedStatus)) {
+//                        currentStatusFilter = "COM";
+//                        chipStatusFilter.setText("Completed");
+//                        chipStatusFilter.setVisibility(View.VISIBLE);
+//                    } else if ("Pending".equals(selectedStatus)) {
+//                        currentStatusFilter = "1";
+//                        chipStatusFilter.setText("Pending");
+//                        chipStatusFilter.setVisibility(View.VISIBLE);
+//                    } else if ("Processing".equals(selectedStatus)) {
+//                        currentStatusFilter = "PRS";
+//                        chipStatusFilter.setText("Processing");
+//                        chipStatusFilter.setVisibility(View.VISIBLE);
+//                    } else if ("Cancelled".equals(selectedStatus)) {
+//                        currentStatusFilter = "CNL";
+//                        chipStatusFilter.setText("Cancelled");
+//                        chipStatusFilter.setVisibility(View.VISIBLE);
+//                    }
+//
+//                    btnStatusFilter.setText(selectedStatus);
+//                    updateActiveFiltersVisibility();
+//                    applyFilters();
+//                })
+//                .show();
+//    }
+private void showStatusFilterDialog() {
+    // Only show Completed option since we only want completed orders
+    String[] statuses = {"Completed"}; // Removed other status options
 
-                    if ("All Status".equals(selectedStatus)) {
-                        currentStatusFilter = "ALL";
-                        chipStatusFilter.setVisibility(View.GONE);
-                    } else if ("Completed".equals(selectedStatus)) {
-                        currentStatusFilter = "COM";
-                        chipStatusFilter.setText("Completed");
-                        chipStatusFilter.setVisibility(View.VISIBLE);
-                    } else if ("Pending".equals(selectedStatus)) {
-                        currentStatusFilter = "1";
-                        chipStatusFilter.setText("Pending");
-                        chipStatusFilter.setVisibility(View.VISIBLE);
-                    } else if ("Processing".equals(selectedStatus)) {
-                        currentStatusFilter = "PRS";
-                        chipStatusFilter.setText("Processing");
-                        chipStatusFilter.setVisibility(View.VISIBLE);
-                    } else if ("Cancelled".equals(selectedStatus)) {
-                        currentStatusFilter = "CNL";
-                        chipStatusFilter.setText("Cancelled");
-                        chipStatusFilter.setVisibility(View.VISIBLE);
-                    }
-
-                    btnStatusFilter.setText(selectedStatus);
-                    updateActiveFiltersVisibility();
-                    applyFilters();
-                })
-                .show();
-    }
+    androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+    builder.setTitle("Filter by Status")
+            .setItems(statuses, (dialog, which) -> {
+                // Only "Completed" is available
+                currentStatusFilter = "COM";
+                chipStatusFilter.setText("Completed");
+                chipStatusFilter.setVisibility(View.VISIBLE);
+                btnStatusFilter.setText("Completed");
+                updateActiveFiltersVisibility();
+                applyFilters();
+            })
+            .show();
+}
 
     private void updateActiveFiltersVisibility() {
         boolean hasActiveFilters = chipDateFilter.getVisibility() == View.VISIBLE ||
@@ -728,15 +826,11 @@ public class ReportViewActivity extends AppCompatActivity {
                         if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
                             parseOrdersData(jsonResponse);
 
-                            // Update adapter with all orders
-                            orderAdapter.updateData(orderList);
-                            updateOrderCount(orderList.size());
-                            updateSummaryCards(orderList);
-                            checkEmptyState(orderList.size());
+                            // Apply completed filter immediately after loading
+                            applyFilters();
 
-                            Log.d(TAG, "Adapter updated with " + orderList.size() + " items");
-                            Toast.makeText(ReportViewActivity.this,
-                                    "Orders loaded successfully: " + orderList.size() + " found", Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "Completed orders loaded and filtered: " + filteredOrderList.size());
+
                         } else {
                             String errorMsg = jsonResponse.optString("message", "Unknown error");
                             Toast.makeText(ReportViewActivity.this,
@@ -946,6 +1040,15 @@ public class ReportViewActivity extends AppCompatActivity {
         }
         if (radioToday != null) {
             radioToday.setChecked(true);
+        }
+
+        // Set default dates for all options
+        String today = dateFormatter.format(new Date());
+        String firstDayOfMonth = getFirstDayOfMonth();
+
+        if (etDownloadStartDate != null && etDownloadEndDate != null) {
+            etDownloadStartDate.setText(today);
+            etDownloadEndDate.setText(today);
         }
     }
 

@@ -46,7 +46,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:visibility="visible">
 
             <androidx.core.widget.NestedScrollView
                 android:layout_width="match_parent"
@@ -142,6 +142,31 @@
                                         android:textSize="14sp"
                                         android:textColor="#718096"
                                         android:layout_marginTop="6dp" />
+                                    <LinearLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="5dp"
+                                        android:orientation="horizontal"
+
+                                        >
+                                        <ImageView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="20dp"
+                                            android:layout_gravity="center"
+                                            android:layout_weight="1"
+                                            android:src="@drawable/ic_rupee"/>
+                                        <TextView
+                                            android:id="@+id/tvProductPrice"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:text=""
+                                            android:textSize="14sp"
+                                            android:layout_gravity="center"
+
+                                            android:textColor="#718096"
+                                             />
+                                    </LinearLayout>
 
                                     <!-- Rating and Reviews -->
                                     <LinearLayout
