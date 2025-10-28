@@ -234,7 +234,7 @@ public class ProductManageActivity extends AppCompatActivity {
                             // Show categories immediately after parsing
                             showCategories();
 
-                            // Then load products data in background
+                            // Load products data in background for global stats
                             loadProductsData();
                         } else {
                             String errorMsg = responseObject.optString("message", "Failed to load categories");
@@ -246,6 +246,130 @@ public class ProductManageActivity extends AppCompatActivity {
                         Log.e("JSON_ERROR", "Categories parsing failed: " + e.getMessage());
                         Toast.makeText(ProductManageActivity.this,
                                 "Error parsing categories: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        showFullLoadingState(false);
+                        showEmptyState(true);
+                    } catch (Exception e) {
+                        Log.e("PARSE_ERROR", "Unexpected error: " + e.getMessage());
+                        Toast.makeText(ProductManageActivity.this,
+                                "Unexpected error occurred", Toast.LENGTH_LONG).show();
+                        showFullLoadingState(false);
+                        showEmptyState(true);
+                    }
+                });
+            }
+        });
+    }
+
+    private void loadSubcategories(String categoryId) {
+        currentLevel = "subcategories";
+        updateBreadcrumb(selectedCategoryName);
+        showFullLoadingState(true);
+
+        Log.d("API_DEBUG", "Loading subcategories for Category ID: " + categoryId + ", Shop ID: " + shopId());
+
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(Attributes.Main_Url + "shop/" + shopId() + "/subcategory")
+                .get()
+                .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> {
+                    showFullLoadingState(false);
+                    Toast.makeText(ProductManageActivity.this,
+                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    showEmptyState(true);
+                });
+                Log.e("API_ERROR", "Subcategories request failed: " + e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBodyString = response.body() != null ? response.body().string() : "";
+                Log.d("API_RESPONSE", "Subcategories raw response: " + responseBodyString);
+
+                runOnUiThread(() -> {
+                    try {
+                        JSONObject responseObject = new JSONObject(responseBodyString);
+
+                        if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
+                            parseSubcategoriesData(responseObject, categoryId);
+                            showSubcategories();
+                        } else {
+                            String errorMsg = responseObject.optString("message", "Failed to load subcategories");
+                            Toast.makeText(ProductManageActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                            showFullLoadingState(false);
+                            showEmptyState(true);
+                        }
+                    } catch (JSONException e) {
+                        Log.e("JSON_ERROR", "Subcategories parsing failed: " + e.getMessage());
+                        Toast.makeText(ProductManageActivity.this,
+                                "Error parsing subcategories: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        showFullLoadingState(false);
+                        showEmptyState(true);
+                    } catch (Exception e) {
+                        Log.e("PARSE_ERROR", "Unexpected error: " + e.getMessage());
+                        Toast.makeText(ProductManageActivity.this,
+                                "Unexpected error occurred", Toast.LENGTH_LONG).show();
+                        showFullLoadingState(false);
+                        showEmptyState(true);
+                    }
+                });
+            }
+        });
+    }
+
+    private void loadProducts(String subcategoryId) {
+        currentLevel = "products";
+        updateBreadcrumb(selectedSubcategoryName);
+        showFullLoadingState(true);
+
+        Log.d("API_DEBUG", "Loading products for Subcategory ID: " + subcategoryId + ", Shop ID: " + shopId());
+
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(Attributes.Main_Url + "shop/" + shopId() + "/products")
+                .get()
+                .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> {
+                    showFullLoadingState(false);
+                    Toast.makeText(ProductManageActivity.this,
+                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    showEmptyState(true);
+                });
+                Log.e("API_ERROR", "Products request failed: " + e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBodyString = response.body() != null ? response.body().string() : "";
+                Log.d("API_RESPONSE", "Products raw response: " + responseBodyString);
+
+                runOnUiThread(() -> {
+                    try {
+                        JSONObject responseObject = new JSONObject(responseBodyString);
+
+                        if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
+                            parseProductsData(responseObject, subcategoryId);
+                            showProducts();
+                        } else {
+                            String errorMsg = responseObject.optString("message", "Failed to load products");
+                            Toast.makeText(ProductManageActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                            showFullLoadingState(false);
+                            showEmptyState(true);
+                        }
+                    } catch (JSONException e) {
+                        Log.e("JSON_ERROR", "Products parsing failed: " + e.getMessage());
+                        Toast.makeText(ProductManageActivity.this,
+                                "Error parsing products: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         showFullLoadingState(false);
                         showEmptyState(true);
                     } catch (Exception e) {
@@ -291,7 +415,7 @@ public class ProductManageActivity extends AppCompatActivity {
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
                         if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
-                            parseProductsData(responseObject);
+                            parseGlobalProductsData(responseObject);
                             updateAllStats();
                         } else {
                             Log.e("API_ERROR", "Failed to load products data: " + responseObject.optString("message", ""));
@@ -340,13 +464,13 @@ public class ProductManageActivity extends AppCompatActivity {
         Log.d("PARSE_DEBUG", "Final categories count: " + categoryList.size());
     }
 
-    private void parseProductsData(JSONObject responseObject) throws JSONException {
+    private void parseSubcategoriesData(JSONObject responseObject, String categoryId) throws JSONException {
         subcategoryList.clear();
-        productList.clear();
+        filteredSubcategoryList.clear();
 
         if (responseObject.has("subcategories") && !responseObject.isNull("subcategories")) {
             JSONArray subcategoriesArray = responseObject.getJSONArray("subcategories");
-            Log.d("PARSE_DEBUG", "Subcategories count: " + subcategoriesArray.length());
+            Log.d("PARSE_DEBUG", "All subcategories count: " + subcategoriesArray.length());
 
             for (int i = 0; i < subcategoriesArray.length(); i++) {
                 JSONObject subcategoryObj = subcategoriesArray.getJSONObject(i);
@@ -369,12 +493,24 @@ public class ProductManageActivity extends AppCompatActivity {
                 subcategory.setProductCount(subcategoryObj.optString("products_count", "0"));
 
                 subcategoryList.add(subcategory);
+
+                // Add to filtered list if it belongs to the selected category
+                if (subcategory.getCategoryId().equals(categoryId)) {
+                    filteredSubcategoryList.add(subcategory);
+                }
             }
         }
 
+        Log.d("PARSE_DEBUG", "Filtered subcategories for category " + categoryId + ": " + filteredSubcategoryList.size());
+    }
+
+    private void parseProductsData(JSONObject responseObject, String subcategoryId) throws JSONException {
+        productList.clear();
+        filteredProductList.clear();
+
         if (responseObject.has("products") && !responseObject.isNull("products")) {
             JSONArray productsArray = responseObject.getJSONArray("products");
-            Log.d("PARSE_DEBUG", "Products count: " + productsArray.length());
+            Log.d("PARSE_DEBUG", "All products count: " + productsArray.length());
 
             for (int i = 0; i < productsArray.length(); i++) {
                 JSONObject productObj = productsArray.getJSONObject(i);
@@ -399,16 +535,25 @@ public class ProductManageActivity extends AppCompatActivity {
                 product.setDiscountValue(productObj.optString("disc_value", "0"));
 
                 productList.add(product);
+
+                // Add to filtered list if it belongs to the selected subcategory
+                if (product.getSubcategoryId().equals(subcategoryId)) {
+                    filteredProductList.add(product);
+                }
             }
         }
 
         productAdapter.setApiResponseData(responseObject);
-        filteredSubcategoryList = new ArrayList<>(subcategoryList);
-        filteredProductList = new ArrayList<>(productList);
+        Log.d("PARSE_DEBUG", "Filtered products for subcategory " + subcategoryId + ": " + filteredProductList.size());
+    }
 
-        Log.d("PARSE_DEBUG", "Final counts - Categories: " + categoryList.size() +
-                ", Subcategories: " + subcategoryList.size() +
-                ", Products: " + productList.size());
+    private void parseGlobalProductsData(JSONObject responseObject) throws JSONException {
+        // This method is only for global products data used in stats calculation
+        // We don't need to filter here as it's for overall statistics
+        if (responseObject.has("products") && !responseObject.isNull("products")) {
+            JSONArray productsArray = responseObject.getJSONArray("products");
+            Log.d("PARSE_DEBUG", "Global products count for stats: " + productsArray.length());
+        }
     }
 
     private void showCategories() {
@@ -432,26 +577,6 @@ public class ProductManageActivity extends AppCompatActivity {
         Log.d("STATS_DEBUG", "Categories - Total: " + totalCategories + ", Active: " + activeCategories);
     }
 
-    private void loadSubcategories(String categoryId) {
-        currentLevel = "subcategories";
-        updateBreadcrumb(selectedCategoryName);
-        showFullLoadingState(true);
-
-        // Filter subcategories for the selected category
-        filteredSubcategoryList.clear();
-        for (Subcategory subcategory : subcategoryList) {
-            if (subcategory.getCategoryId().equals(categoryId)) {
-                filteredSubcategoryList.add(subcategory);
-            }
-        }
-
-        Log.d("SUBCAT_DEBUG", "Loading subcategories for category: " + categoryId +
-                ", Found: " + filteredSubcategoryList.size());
-
-        // Simulate loading delay for better UX
-        rvItems.postDelayed(this::showSubcategories, 600);
-    }
-
     private void showSubcategories() {
         currentLevel = "subcategories";
         rvItems.setAdapter(subcategoryAdapter);
@@ -470,26 +595,6 @@ public class ProductManageActivity extends AppCompatActivity {
         etSearch.setText("");
 
         Log.d("STATS_DEBUG", "Subcategories - Total: " + totalSubcategories + ", Active: " + activeSubcategories);
-    }
-
-    private void loadProducts(String subcategoryId) {
-        currentLevel = "products";
-        updateBreadcrumb(selectedSubcategoryName);
-        showFullLoadingState(true);
-
-        // Filter products for the selected subcategory
-        filteredProductList.clear();
-        for (Product product : productList) {
-            if (product.getSubcategoryId().equals(subcategoryId)) {
-                filteredProductList.add(product);
-            }
-        }
-
-        Log.d("PRODUCT_DEBUG", "Loading products for subcategory: " + subcategoryId +
-                ", Found: " + filteredProductList.size());
-
-        // Simulate loading delay for better UX
-        rvItems.postDelayed(this::showProducts, 600);
     }
 
     private void showProducts() {

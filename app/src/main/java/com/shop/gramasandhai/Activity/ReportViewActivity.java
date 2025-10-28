@@ -3,6 +3,7 @@ package com.shop.gramasandhai.Activity;
 import android.app.DatePickerDialog;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintJob;
@@ -25,6 +26,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
@@ -65,8 +67,11 @@ public class ReportViewActivity extends AppCompatActivity {
     // UI Components
     private ProgressBar progressBar;
     private TextView tvEmptyState;
-    private View loadingOverlay;
     private FloatingActionButton fabRefresh;
+
+    // Shimmer and Content Views
+    private ShimmerFrameLayout shimmerLayout;
+    private View contentScrollView;
 
     // Summary Cards
     private TextView tvCompletedOrders, tvTotalRevenue, tvOrderCount;
@@ -82,10 +87,9 @@ public class ReportViewActivity extends AppCompatActivity {
     private MaterialButton btnApplyDateRange, btnCancelDateRange;
 
     // Download Components
-
     private MaterialCardView cardDownload;
     private RadioGroup radioGroupDownloadType;
-    private RadioButton radioToday, radioThisMonth, radioCustom; // Added radioThisMonth
+    private RadioButton radioToday, radioThisMonth, radioCustom;
     private TextInputEditText etDownloadStartDate, etDownloadEndDate;
     private View layoutCustomDate;
     private MaterialButton btnDownloadReport, btnCancelDownload;
@@ -95,12 +99,13 @@ public class ReportViewActivity extends AppCompatActivity {
     private SimpleDateFormat dateFormatter;
 
     // Filter states
-    private String currentStatusFilter = "ALL";
+    private String currentStatusFilter = "COM";
     private String currentDateFilter = "";
     private String selectedStartDate = "";
     private String selectedEndDate = "";
 
     private static final String TAG = "ReportViewActivity";
+    private Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,7 +118,10 @@ public class ReportViewActivity extends AppCompatActivity {
         setupRecyclerView();
         setupClickListeners();
         initializeDatePickers();
-        loadReport();
+
+        // Show shimmer and load data with slight delay
+        showShimmerLoading();
+        handler.postDelayed(this::loadReport, 1000); // 1 second delay for better UX
     }
 
     private void initializeViews() {
@@ -123,10 +131,13 @@ public class ReportViewActivity extends AppCompatActivity {
         recyclerViewOrders = findViewById(R.id.recyclerViewOrders);
         progressBar = findViewById(R.id.progressBar);
         tvEmptyState = findViewById(R.id.tvEmptyState);
-        loadingOverlay = findViewById(R.id.loadingOverlay);
         fabRefresh = findViewById(R.id.fabRefresh);
 
-        // Add these in initializeViews() method
+        // Shimmer and Content Views
+        shimmerLayout = findViewById(R.id.shimmerLayout);
+        contentScrollView = findViewById(R.id.contentScrollView);
+
+        // Revenue TextViews
         tvCODRevenue = findViewById(R.id.tvCODRevenue);
         tvOnlineRevenue = findViewById(R.id.tvOnlineRevenue);
 
@@ -153,7 +164,7 @@ public class ReportViewActivity extends AppCompatActivity {
         cardDownload = findViewById(R.id.cardDownload);
         radioGroupDownloadType = findViewById(R.id.radioGroupDownloadType);
         radioToday = findViewById(R.id.radioToday);
-        radioThisMonth = findViewById(R.id.radioThisMonth); // Initialize new radio button
+        radioThisMonth = findViewById(R.id.radioThisMonth);
         radioCustom = findViewById(R.id.radioCustom);
         etDownloadStartDate = findViewById(R.id.etDownloadStartDate);
         etDownloadEndDate = findViewById(R.id.etDownloadEndDate);
@@ -161,14 +172,26 @@ public class ReportViewActivity extends AppCompatActivity {
         btnDownloadReport = findViewById(R.id.btnDownloadReport);
         btnCancelDownload = findViewById(R.id.btnCancelDownload);
 
-        // SET DEFAULT STATUS FILTER TO SHOW ONLY COMPLETED ORDERS
-        currentStatusFilter = "COM"; // Only completed orders
+        // Set default status filter to show only completed orders
+        currentStatusFilter = "COM";
         btnStatusFilter.setText("Completed");
         chipStatusFilter.setText("Completed");
         chipStatusFilter.setVisibility(View.VISIBLE);
         updateActiveFiltersVisibility();
 
-        Log.d(TAG, "initializeViews: Views initialized successfully - Default filter set to Completed");
+        Log.d(TAG, "initializeViews: Views initialized successfully");
+    }
+
+    private void showShimmerLoading() {
+        shimmerLayout.setVisibility(View.VISIBLE);
+        shimmerLayout.startShimmer();
+        contentScrollView.setVisibility(View.GONE);
+    }
+
+    private void hideShimmerLoading() {
+        shimmerLayout.stopShimmer();
+        shimmerLayout.setVisibility(View.GONE);
+        contentScrollView.setVisibility(View.VISIBLE);
     }
 
     private void initializeDatePickers() {
@@ -215,7 +238,6 @@ public class ReportViewActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         Log.d(TAG, "Setting up RecyclerView");
 
-        // Initialize with empty list first
         orderAdapter = new OrderAdapter(new ArrayList<>(), new OrderAdapter.OrderClickListener() {
             @Override
             public void onOrderClick(Orders order) {
@@ -235,11 +257,11 @@ public class ReportViewActivity extends AppCompatActivity {
         Log.d(TAG, "RecyclerView setup completed");
     }
 
-
     private void setupClickListeners() {
         fabRefresh.setOnClickListener(v -> {
             Log.d(TAG, "Refresh button clicked");
-            loadReport();
+            showShimmerLoading();
+            handler.postDelayed(this::loadReport, 500);
         });
 
         // Filter buttons
@@ -271,47 +293,28 @@ public class ReportViewActivity extends AppCompatActivity {
         });
 
         chipStatusFilter.setOnCloseIconClickListener(v -> {
-            currentStatusFilter = "ALL";
-            chipStatusFilter.setVisibility(View.GONE);
-            btnStatusFilter.setText("All Status");
+            currentStatusFilter = "COM"; // Reset to completed only
+            chipStatusFilter.setVisibility(View.VISIBLE);
+            btnStatusFilter.setText("Completed");
             updateActiveFiltersVisibility();
             applyFilters();
         });
 
         // Radio group listener
-        // Radio group listener
         radioGroupDownloadType.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.radioToday) {
-                if (layoutCustomDate != null) {
-                    layoutCustomDate.setVisibility(View.GONE);
-                }
+                layoutCustomDate.setVisibility(View.GONE);
                 String today = dateFormatter.format(new Date());
-                if (etDownloadStartDate != null) {
-                    etDownloadStartDate.setText(today);
-                }
-                if (etDownloadEndDate != null) {
-                    etDownloadEndDate.setText(today);
-                }
+                etDownloadStartDate.setText(today);
+                etDownloadEndDate.setText(today);
             } else if (checkedId == R.id.radioThisMonth) {
-                if (layoutCustomDate != null) {
-                    layoutCustomDate.setVisibility(View.GONE);
-                }
-                // Set dates for current month
-                Calendar calendar = Calendar.getInstance();
+                layoutCustomDate.setVisibility(View.GONE);
                 String firstDayOfMonth = getFirstDayOfMonth();
-                String lastDayOfMonth = dateFormatter.format(calendar.getTime());
-
-                if (etDownloadStartDate != null) {
-                    etDownloadStartDate.setText(firstDayOfMonth);
-                    etDownloadStartDate.setText(firstDayOfMonth);
-                }
-                if (etDownloadEndDate != null) {
-                    etDownloadEndDate.setText(lastDayOfMonth);
-                }
+                String lastDayOfMonth = dateFormatter.format(new Date());
+                etDownloadStartDate.setText(firstDayOfMonth);
+                etDownloadEndDate.setText(lastDayOfMonth);
             } else if (checkedId == R.id.radioCustom) {
-                if (layoutCustomDate != null) {
-                    layoutCustomDate.setVisibility(View.VISIBLE);
-                }
+                layoutCustomDate.setVisibility(View.VISIBLE);
             }
         });
     }
@@ -329,7 +332,6 @@ public class ReportViewActivity extends AppCompatActivity {
         List<Orders> tempFilteredList = new ArrayList<>();
 
         for (Orders order : orderList) {
-            // FORCE ONLY COMPLETED ORDERS - Remove the ALL status check
             boolean statusMatch = order.getOrderStatus() != null &&
                     order.getOrderStatus().equalsIgnoreCase("COM");
 
@@ -344,7 +346,6 @@ public class ReportViewActivity extends AppCompatActivity {
         Log.d(TAG, "Completed orders after filter: " + tempFilteredList.size());
 
         runOnUiThread(() -> {
-            // Update the adapter with filtered data
             orderAdapter.updateData(tempFilteredList);
             updateOrderCount(tempFilteredList.size());
             updateSummaryCards(tempFilteredList);
@@ -364,7 +365,7 @@ public class ReportViewActivity extends AppCompatActivity {
     private void updateSummaryCards(List<Orders> orders) {
         runOnUiThread(() -> {
             try {
-                int completedOrders = orders.size(); // All orders in the list are completed now
+                int completedOrders = orders.size();
                 double totalRevenue = 0.0;
                 double codRevenue = 0.0;
                 double onlineRevenue = 0.0;
@@ -374,12 +375,10 @@ public class ReportViewActivity extends AppCompatActivity {
                         double amount = Double.parseDouble(order.getAmount());
                         totalRevenue += amount;
 
-                        // Calculate payment method specific revenue
                         if (order.getPaymentMethod() != null) {
                             if (order.getPaymentMethod().equalsIgnoreCase("COD")) {
                                 codRevenue += amount;
                             } else {
-                                // Consider all non-COD as online payments
                                 onlineRevenue += amount;
                             }
                         }
@@ -415,20 +414,12 @@ public class ReportViewActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             try {
                 if (count == 0) {
-                    if (tvEmptyState != null) {
-                        tvEmptyState.setVisibility(View.VISIBLE);
-                    }
-                    if (recyclerViewOrders != null) {
-                        recyclerViewOrders.setVisibility(View.GONE);
-                    }
+                    tvEmptyState.setVisibility(View.VISIBLE);
+                    recyclerViewOrders.setVisibility(View.GONE);
                     Log.d(TAG, "No orders to display - showing empty state");
                 } else {
-                    if (tvEmptyState != null) {
-                        tvEmptyState.setVisibility(View.GONE);
-                    }
-                    if (recyclerViewOrders != null) {
-                        recyclerViewOrders.setVisibility(View.VISIBLE);
-                    }
+                    tvEmptyState.setVisibility(View.GONE);
+                    recyclerViewOrders.setVisibility(View.VISIBLE);
                     Log.d(TAG, "Displaying " + count + " orders");
                 }
             } catch (Exception e) {
@@ -455,73 +446,6 @@ public class ReportViewActivity extends AppCompatActivity {
         }
     }
 
-    private void updateOrderCount() {
-        runOnUiThread(() -> {
-            if (tvOrderCount != null) {
-                tvOrderCount.setText(filteredOrderList.size() + " orders");
-            }
-        });
-    }
-
-    private void updateSummaryCards() {
-        runOnUiThread(() -> {
-            try {
-                int completedOrders = 0;
-                double totalRevenue = 0.0;
-
-                for (Orders order : filteredOrderList) {
-                    if (order.getOrderStatus() != null && "COM".equals(order.getOrderStatus())) {
-                        completedOrders++;
-                        try {
-                            totalRevenue += Double.parseDouble(order.getAmount());
-                        } catch (NumberFormatException e) {
-                            Log.e(TAG, "Invalid amount: " + order.getAmount());
-                        }
-                    }
-                }
-
-                // FIXED: Added null checks for TextViews
-                if (tvCompletedOrders != null) {
-                    tvCompletedOrders.setText(String.valueOf(completedOrders));
-                }
-                if (tvTotalRevenue != null) {
-                    tvTotalRevenue.setText("₹" + String.format(Locale.US, "%.2f", totalRevenue));
-                }
-
-                Log.d(TAG, "Summary updated - Completed: " + completedOrders + ", Revenue: " + totalRevenue);
-            } catch (Exception e) {
-                Log.e(TAG, "Error in updateSummaryCards: " + e.getMessage(), e);
-            }
-        });
-    }
-
-    private void checkEmptyState() {
-        runOnUiThread(() -> {
-            try {
-                if (filteredOrderList.isEmpty()) {
-                    if (tvEmptyState != null) {
-                        tvEmptyState.setVisibility(View.VISIBLE);
-                    }
-                    if (recyclerViewOrders != null) {
-                        recyclerViewOrders.setVisibility(View.GONE);
-                    }
-                    Log.d(TAG, "No orders to display - showing empty state");
-                } else {
-                    if (tvEmptyState != null) {
-                        tvEmptyState.setVisibility(View.GONE);
-                    }
-                    if (recyclerViewOrders != null) {
-                        recyclerViewOrders.setVisibility(View.VISIBLE);
-                    }
-                    Log.d(TAG, "Displaying " + filteredOrderList.size() + " orders");
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error in checkEmptyState: " + e.getMessage(), e);
-            }
-        });
-    }
-
-    // Print Report Functionality
     private void downloadReport() {
         String startDate, endDate;
 
@@ -547,9 +471,8 @@ public class ReportViewActivity extends AppCompatActivity {
     }
 
     private void generatePrintReport(String startDate, String endDate) {
-        showLoading(true);
+        showProgressBar(true);
 
-        // Filter ONLY COMPLETED orders for the selected date range
         List<Orders> reportOrders = new ArrayList<>();
         for (Orders order : orderList) {
             if (isDateInRange(order.getCreatedAt(), startDate, endDate) &&
@@ -558,7 +481,6 @@ public class ReportViewActivity extends AppCompatActivity {
             }
         }
 
-        // Calculate report statistics for COMPLETED orders only
         int totalOrders = reportOrders.size();
         double totalRevenue = 0.0;
         double codRevenue = 0.0;
@@ -569,12 +491,10 @@ public class ReportViewActivity extends AppCompatActivity {
                 double amount = Double.parseDouble(order.getAmount());
                 totalRevenue += amount;
 
-                // Calculate payment method specific revenue
                 if (order.getPaymentMethod() != null) {
                     if (order.getPaymentMethod().equalsIgnoreCase("COD")) {
                         codRevenue += amount;
                     } else {
-                        // Consider all non-COD as online payments
                         onlineRevenue += amount;
                     }
                 }
@@ -583,14 +503,12 @@ public class ReportViewActivity extends AppCompatActivity {
             }
         }
 
-        // Generate HTML content for printing
         String htmlContent = generateHTMLContent(startDate, endDate, reportOrders,
                 totalOrders, totalRevenue, codRevenue, onlineRevenue);
 
-        // Print the report
         printHTMLContent(htmlContent, "Completed_Order_Report_" + startDate + "_to_" + endDate);
 
-        showLoading(false);
+        showProgressBar(false);
     }
 
     private String generateHTMLContent(String startDate, String endDate, List<Orders> orders,
@@ -617,7 +535,6 @@ public class ReportViewActivity extends AppCompatActivity {
         html.append("</head>");
         html.append("<body>");
 
-        // Dynamic title based on date range
         String reportTitle;
         if (startDate.equals(endDate)) {
             reportTitle = "TODAY'S COMPLETED ORDERS REPORT - " + startDate;
@@ -632,13 +549,11 @@ public class ReportViewActivity extends AppCompatActivity {
         html.append("<p><strong>Date Range:</strong> ").append(startDate).append(" to ").append(endDate).append("</p>");
         html.append("</div>");
 
-        // ... rest of the HTML content remains the same
         html.append("<h2>SUMMARY</h2>");
         html.append("<div class='summary'>");
         html.append("<p><strong>Total Completed Orders:</strong> ").append(totalOrders).append("</p>");
         html.append("<p class='total'><strong>Total Revenue:</strong> ₹").append(String.format(Locale.US, "%.2f", totalRevenue)).append("</p>");
 
-        // Revenue Breakdown
         html.append("<div class='revenue-breakdown'>");
         html.append("<div class='revenue-item'>");
         html.append("<p><strong>COD Revenue:</strong><br>₹").append(String.format(Locale.US, "%.2f", codRevenue)).append("</p>");
@@ -713,76 +628,26 @@ public class ReportViewActivity extends AppCompatActivity {
         webView.loadDataWithBaseURL(null, htmlContent, "text/HTML", "UTF-8", null);
     }
 
-    private String getStatusText(String status) {
-        if (status == null) return "Unknown";
+    private void showStatusFilterDialog() {
+        String[] statuses = {"Completed"};
 
-        switch (status) {
-            case "COM": return "Completed";
-            case "PRS": return "Processing";
-            case "CNL": return "Cancelled";
-            case "1": return "Pending";
-            default: return "Unknown";
-        }
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Filter by Status")
+                .setItems(statuses, (dialog, which) -> {
+                    currentStatusFilter = "COM";
+                    chipStatusFilter.setText("Completed");
+                    chipStatusFilter.setVisibility(View.VISIBLE);
+                    btnStatusFilter.setText("Completed");
+                    updateActiveFiltersVisibility();
+                    applyFilters();
+                })
+                .show();
     }
-
-//    private void showStatusFilterDialog() {
-//        String[] statuses = {"All Status", "Completed", "Pending", "Processing", "Cancelled"};
-//        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-//        builder.setTitle("Filter by Status")
-//                .setItems(statuses, (dialog, which) -> {
-//                    String selectedStatus = statuses[which];
-//
-//                    if ("All Status".equals(selectedStatus)) {
-//                        currentStatusFilter = "ALL";
-//                        chipStatusFilter.setVisibility(View.GONE);
-//                    } else if ("Completed".equals(selectedStatus)) {
-//                        currentStatusFilter = "COM";
-//                        chipStatusFilter.setText("Completed");
-//                        chipStatusFilter.setVisibility(View.VISIBLE);
-//                    } else if ("Pending".equals(selectedStatus)) {
-//                        currentStatusFilter = "1";
-//                        chipStatusFilter.setText("Pending");
-//                        chipStatusFilter.setVisibility(View.VISIBLE);
-//                    } else if ("Processing".equals(selectedStatus)) {
-//                        currentStatusFilter = "PRS";
-//                        chipStatusFilter.setText("Processing");
-//                        chipStatusFilter.setVisibility(View.VISIBLE);
-//                    } else if ("Cancelled".equals(selectedStatus)) {
-//                        currentStatusFilter = "CNL";
-//                        chipStatusFilter.setText("Cancelled");
-//                        chipStatusFilter.setVisibility(View.VISIBLE);
-//                    }
-//
-//                    btnStatusFilter.setText(selectedStatus);
-//                    updateActiveFiltersVisibility();
-//                    applyFilters();
-//                })
-//                .show();
-//    }
-private void showStatusFilterDialog() {
-    // Only show Completed option since we only want completed orders
-    String[] statuses = {"Completed"}; // Removed other status options
-
-    androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-    builder.setTitle("Filter by Status")
-            .setItems(statuses, (dialog, which) -> {
-                // Only "Completed" is available
-                currentStatusFilter = "COM";
-                chipStatusFilter.setText("Completed");
-                chipStatusFilter.setVisibility(View.VISIBLE);
-                btnStatusFilter.setText("Completed");
-                updateActiveFiltersVisibility();
-                applyFilters();
-            })
-            .show();
-}
 
     private void updateActiveFiltersVisibility() {
         boolean hasActiveFilters = chipDateFilter.getVisibility() == View.VISIBLE ||
                 chipStatusFilter.getVisibility() == View.VISIBLE;
-        if (layoutActiveFilters != null) {
-            layoutActiveFilters.setVisibility(hasActiveFilters ? View.VISIBLE : View.GONE);
-        }
+        layoutActiveFilters.setVisibility(hasActiveFilters ? View.VISIBLE : View.GONE);
     }
 
     private String shopId() {
@@ -791,7 +656,7 @@ private void showStatusFilterDialog() {
     }
 
     private void loadReport() {
-        showLoading(true);
+        showProgressBar(true);
 
         OkHttpClient client = new OkHttpClient();
         String url = "https://gramasandhai.in/services/index.php/order-list?shopId=" + shopId();
@@ -807,7 +672,8 @@ private void showStatusFilterDialog() {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    showLoading(false);
+                    hideShimmerLoading();
+                    showProgressBar(false);
                     Toast.makeText(ReportViewActivity.this,
                             "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     checkEmptyState(0);
@@ -820,17 +686,14 @@ private void showStatusFilterDialog() {
                 Log.d(TAG, "API Response received, length: " + responseBodyString.length());
 
                 runOnUiThread(() -> {
-                    showLoading(false);
+                    hideShimmerLoading();
+                    showProgressBar(false);
                     try {
                         JSONObject jsonResponse = new JSONObject(responseBodyString);
                         if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
                             parseOrdersData(jsonResponse);
-
-                            // Apply completed filter immediately after loading
                             applyFilters();
-
                             Log.d(TAG, "Completed orders loaded and filtered: " + filteredOrderList.size());
-
                         } else {
                             String errorMsg = jsonResponse.optString("message", "Unknown error");
                             Toast.makeText(ReportViewActivity.this,
@@ -847,31 +710,10 @@ private void showStatusFilterDialog() {
             }
         });
     }
-    private void debugOrdersData() {
-        Log.d(TAG, "=== DEBUG ORDERS DATA ===");
-        Log.d(TAG, "Total orders: " + orderList.size());
-        for (int i = 0; i < Math.min(orderList.size(), 5); i++) {
-            Orders order = orderList.get(i);
-            Log.d(TAG, "Order " + i + ": " +
-                    "ID: " + order.getOrderId() +
-                    ", Status: " + order.getOrderStatus() +
-                    ", Amount: " + order.getAmount() +
-                    ", Date: " + order.getCreatedAt());
-        }
-        Log.d(TAG, "=== END DEBUG ===");
-    }
 
-    private void debugRecyclerViewState() {
+    private void showProgressBar(boolean show) {
         runOnUiThread(() -> {
-            Log.d(TAG, "=== RECYCLERVIEW DEBUG ===");
-            Log.d(TAG, "RecyclerView visibility: " + recyclerViewOrders.getVisibility());
-            Log.d(TAG, "RecyclerView height: " + recyclerViewOrders.getHeight());
-            Log.d(TAG, "RecyclerView width: " + recyclerViewOrders.getWidth());
-            Log.d(TAG, "RecyclerView layout manager: " + recyclerViewOrders.getLayoutManager());
-            Log.d(TAG, "RecyclerView adapter: " + recyclerViewOrders.getAdapter());
-            Log.d(TAG, "Adapter item count: " + (recyclerViewOrders.getAdapter() != null ? recyclerViewOrders.getAdapter().getItemCount() : "null"));
-            Log.d(TAG, "Empty state visibility: " + tvEmptyState.getVisibility());
-            Log.d(TAG, "=== END DEBUG ===");
+            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         });
     }
 
@@ -919,31 +761,6 @@ private void showStatusFilterDialog() {
         }
 
         Log.d(TAG, "Total orders parsed: " + orderList.size());
-        debugOrdersData(); // Add this line
-    }
-
-    private void showLoading(boolean show) {
-        runOnUiThread(() -> {
-            try {
-                if (show) {
-                    if (loadingOverlay != null) {
-                        loadingOverlay.setVisibility(View.VISIBLE);
-                    }
-                    if (progressBar != null) {
-                        progressBar.setVisibility(View.VISIBLE);
-                    }
-                } else {
-                    if (loadingOverlay != null) {
-                        loadingOverlay.setVisibility(View.GONE);
-                    }
-                    if (progressBar != null) {
-                        progressBar.setVisibility(View.GONE);
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error in showLoading: " + e.getMessage(), e);
-            }
-        });
     }
 
     private void showOrderDetails(Orders order) {
@@ -998,10 +815,8 @@ private void showStatusFilterDialog() {
         selectedEndDate = endDate;
         currentDateFilter = "CUSTOM";
 
-        if (chipDateFilter != null) {
-            chipDateFilter.setText(getFilterDisplayText(filterIndex));
-            chipDateFilter.setVisibility(View.VISIBLE);
-        }
+        chipDateFilter.setText(getFilterDisplayText(filterIndex));
+        chipDateFilter.setVisibility(View.VISIBLE);
         updateActiveFiltersVisibility();
         applyFilters();
     }
@@ -1017,54 +832,33 @@ private void showStatusFilterDialog() {
     }
 
     private void showDateRangeCard() {
-        if (cardDateRange != null) {
-            cardDateRange.setVisibility(View.VISIBLE);
-        }
-        if (cardDownload != null) {
-            cardDownload.setVisibility(View.GONE);
-        }
+        cardDateRange.setVisibility(View.VISIBLE);
+        cardDownload.setVisibility(View.GONE);
     }
 
     private void hideDateRangeCard() {
-        if (cardDateRange != null) {
-            cardDateRange.setVisibility(View.GONE);
-        }
+        cardDateRange.setVisibility(View.GONE);
     }
 
     private void showDownloadCard() {
-        if (cardDownload != null) {
-            cardDownload.setVisibility(View.VISIBLE);
-        }
-        if (cardDateRange != null) {
-            cardDateRange.setVisibility(View.GONE);
-        }
-        if (radioToday != null) {
-            radioToday.setChecked(true);
-        }
+        cardDownload.setVisibility(View.VISIBLE);
+        cardDateRange.setVisibility(View.GONE);
+        radioToday.setChecked(true);
 
-        // Set default dates for all options
         String today = dateFormatter.format(new Date());
-        String firstDayOfMonth = getFirstDayOfMonth();
-
-        if (etDownloadStartDate != null && etDownloadEndDate != null) {
-            etDownloadStartDate.setText(today);
-            etDownloadEndDate.setText(today);
-        }
+        etDownloadStartDate.setText(today);
+        etDownloadEndDate.setText(today);
     }
 
     private void hideDownloadCard() {
-        if (cardDownload != null) {
-            cardDownload.setVisibility(View.GONE);
-        }
+        cardDownload.setVisibility(View.GONE);
     }
 
     private void clearDateFilter() {
         currentDateFilter = "";
         selectedStartDate = "";
         selectedEndDate = "";
-        if (chipDateFilter != null) {
-            chipDateFilter.setVisibility(View.GONE);
-        }
+        chipDateFilter.setVisibility(View.GONE);
         updateActiveFiltersVisibility();
         applyFilters();
     }
@@ -1082,10 +876,8 @@ private void showStatusFilterDialog() {
         selectedEndDate = endDate;
         currentDateFilter = "CUSTOM";
 
-        if (chipDateFilter != null) {
-            chipDateFilter.setText("Custom: " + startDate + " to " + endDate);
-            chipDateFilter.setVisibility(View.VISIBLE);
-        }
+        chipDateFilter.setText("Custom: " + startDate + " to " + endDate);
+        chipDateFilter.setVisibility(View.VISIBLE);
         updateActiveFiltersVisibility();
         applyFilters();
         hideDateRangeCard();
@@ -1095,9 +887,7 @@ private void showStatusFilterDialog() {
     private void showStartDatePicker() {
         DatePickerDialog datePicker = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendarStart.set(year, month, dayOfMonth);
-            if (etStartDate != null) {
-                etStartDate.setText(dateFormatter.format(calendarStart.getTime()));
-            }
+            etStartDate.setText(dateFormatter.format(calendarStart.getTime()));
         }, calendarStart.get(Calendar.YEAR), calendarStart.get(Calendar.MONTH), calendarStart.get(Calendar.DAY_OF_MONTH));
         datePicker.show();
     }
@@ -1105,9 +895,7 @@ private void showStatusFilterDialog() {
     private void showEndDatePicker() {
         DatePickerDialog datePicker = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendarEnd.set(year, month, dayOfMonth);
-            if (etEndDate != null) {
-                etEndDate.setText(dateFormatter.format(calendarEnd.getTime()));
-            }
+            etEndDate.setText(dateFormatter.format(calendarEnd.getTime()));
         }, calendarEnd.get(Calendar.YEAR), calendarEnd.get(Calendar.MONTH), calendarEnd.get(Calendar.DAY_OF_MONTH));
         datePicker.show();
     }
@@ -1115,9 +903,7 @@ private void showStatusFilterDialog() {
     private void showDownloadStartDatePicker() {
         DatePickerDialog datePicker = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendarDownloadStart.set(year, month, dayOfMonth);
-            if (etDownloadStartDate != null) {
-                etDownloadStartDate.setText(dateFormatter.format(calendarDownloadStart.getTime()));
-            }
+            etDownloadStartDate.setText(dateFormatter.format(calendarDownloadStart.getTime()));
         }, calendarDownloadStart.get(Calendar.YEAR), calendarDownloadStart.get(Calendar.MONTH), calendarDownloadStart.get(Calendar.DAY_OF_MONTH));
         datePicker.show();
     }
@@ -1125,10 +911,16 @@ private void showStatusFilterDialog() {
     private void showDownloadEndDatePicker() {
         DatePickerDialog datePicker = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendarDownloadEnd.set(year, month, dayOfMonth);
-            if (etDownloadEndDate != null) {
-                etDownloadEndDate.setText(dateFormatter.format(calendarDownloadEnd.getTime()));
-            }
+            etDownloadEndDate.setText(dateFormatter.format(calendarDownloadEnd.getTime()));
         }, calendarDownloadEnd.get(Calendar.YEAR), calendarDownloadEnd.get(Calendar.MONTH), calendarDownloadEnd.get(Calendar.DAY_OF_MONTH));
         datePicker.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
     }
 }
