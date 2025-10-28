@@ -142,30 +142,47 @@
                                         android:textSize="14sp"
                                         android:textColor="#718096"
                                         android:layout_marginTop="6dp" />
+
+                                    <!-- Price Section with Edit Icon -->
                                     <LinearLayout
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="5dp"
                                         android:orientation="horizontal"
+                                        android:gravity="center_vertical">
 
-                                        >
                                         <ImageView
                                             android:layout_width="wrap_content"
                                             android:layout_height="20dp"
-                                            android:layout_gravity="center"
-                                            android:layout_weight="1"
-                                            android:src="@drawable/ic_rupee"/>
+                                            android:src="@drawable/ic_rupee"
+                                            android:layout_marginEnd="4dp"/>
+
                                         <TextView
                                             android:id="@+id/tvProductPrice"
-                                            android:layout_width="match_parent"
+                                            android:layout_width="0dp"
                                             android:layout_height="wrap_content"
                                             android:layout_weight="1"
                                             android:text=""
-                                            android:textSize="14sp"
-                                            android:layout_gravity="center"
+                                            android:textSize="16sp"
+                                            android:textColor="#2D3748"
+                                            android:textStyle="bold" />
 
-                                            android:textColor="#718096"
-                                             />
+                                        <!-- Edit Price Button -->
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnEditPrice"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="Edit"
+                                            android:textSize="12sp"
+                                            android:paddingHorizontal="12dp"
+                                            android:paddingVertical="4dp"
+                                            app:icon="@drawable/ic_edit"
+                                            app:iconSize="16dp"
+                                            app:iconGravity="textStart"
+                                            style="@style/Widget.Material3.Button.OutlinedButton"
+                                            app:strokeColor="#3182CE"
+                                            app:strokeWidth="1dp" />
+
                                     </LinearLayout>
 
                                     <!-- Rating and Reviews -->
@@ -504,9 +521,6 @@
     </LinearLayout>
 
     <!-- Floating Action Button -->
-
-    <!-- Add this inside your CoordinatorLayout in activity_product_view.xml -->
-    <!-- Add this inside your CoordinatorLayout in activity_product_view.xml -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAddVariant"
         android:layout_width="wrap_content"
@@ -518,6 +532,5 @@
         app:cornerRadius="12dp"
         app:layout_anchor="@id/contentLayout"
         app:layout_anchorGravity="bottom|end" />
-
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -47,6 +47,9 @@
 
     <color name="divider_color">#E0E0E0</color>
 
+    <color name="warning_color">#E53E3E</color>
+
+
 
     <color name="gray">#9E9E9E</color>
     <color name="dark_gray">#616161</color>

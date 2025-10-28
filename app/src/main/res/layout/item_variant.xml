@@ -17,19 +17,45 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="20dp">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnDeleteVariant"
-            android:layout_width="wrap_content"
+
+        <!-- Action Buttons Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Delete"
-            android:textSize="12sp"
-            style="@style/Widget.Material3.Button.TextButton"
-            app:icon="@drawable/ic_delete"
-            app:iconGravity="textStart"
-            android:layout_gravity="right"
-            app:iconPadding="4dp"
-            app:iconTint="@color/errorColor"
-            android:textColor="@color/errorColor" />
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginBottom="12dp">
+
+            <!-- Edit Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditVariant"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Edit"
+                android:textSize="12sp"
+                style="@style/Widget.Material3.Button.TextButton"
+                app:icon="@drawable/ic_edit"
+                app:iconGravity="textStart"
+                app:iconPadding="4dp"
+                app:iconTint="@color/primaryColor"
+                android:textColor="@color/primaryColor"
+                android:layout_marginEnd="8dp" />
+
+            <!-- Delete Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteVariant"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delete"
+                android:textSize="12sp"
+                style="@style/Widget.Material3.Button.TextButton"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:iconPadding="4dp"
+                app:iconTint="@color/errorColor"
+                android:textColor="@color/errorColor" />
+
+        </LinearLayout>
 
         <!-- Header Section with Variant Info and Status -->
         <LinearLayout
@@ -102,7 +128,6 @@
             </LinearLayout>
 
         </LinearLayout>
-
 
         <!-- Variant ID -->
         <TextView
@@ -218,34 +243,36 @@
 
                 </LinearLayout>
 
-                <!-- Discount Type Selector with Improved Styling - Now with 3 options -->
+                <!-- Discount Type Selector with Improved Styling -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:gravity="center_vertical"
                     android:layout_marginBottom="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:text="Discount Type"
                         android:textSize="14sp"
-                        android:textColor="#475569" />
+                        android:textColor="#475569"
+                        android:layout_marginBottom="8dp" />
 
-                    <LinearLayout
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardBackgroundColor="@color/white">
+                        app:cardCornerRadius="8dp"
+                        app:cardBackgroundColor="@android:color/white"
+                        app:strokeColor="#E2E8F0"
+                        app:strokeWidth="1dp">
 
                         <com.google.android.material.button.MaterialButtonToggleGroup
                             android:id="@+id/toggleDiscountType"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             app:singleSelection="true"
-                            app:selectionRequired="false"
-                            android:gravity="end">
+                            app:selectionRequired="true"
+                            android:gravity="center">
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnNoDiscount"
@@ -270,7 +297,7 @@
 
                         </com.google.android.material.button.MaterialButtonToggleGroup>
 
-                    </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
 
                 </LinearLayout>
 
@@ -328,13 +355,13 @@
                         app:icon="@drawable/ic_update"
                         app:iconGravity="textStart"
                         app:iconPadding="4dp"
-                        app:iconTint="@color/primaryColor" />
+                        app:iconTint="@color/primaryColor"
+                        android:textColor="@color/primaryColor" />
 
                     <View
                         android:layout_width="0dp"
                         android:layout_height="0dp"
                         android:layout_weight="1" />
-
 
                     <!-- Discount Badge with Icon -->
                     <LinearLayout
@@ -364,14 +391,10 @@
                             android:textStyle="bold" />
 
                     </LinearLayout>
-                    <!-- Add this to your item_variant.xml in the action buttons section -->
-
-
 
                 </LinearLayout>
 
             </LinearLayout>
-
 
         </com.google.android.material.card.MaterialCardView>
 

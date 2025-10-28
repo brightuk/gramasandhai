@@ -1,11 +1,21 @@
 package com.shop.gramasandhai.Activity;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -15,14 +25,16 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.shop.gramasandhai.Adapter.VariantAdapter;
 import com.shop.gramasandhai.Attributes.Attributes;
 import com.shop.gramasandhai.R;
@@ -47,7 +59,7 @@ import okhttp3.Response;
 public class ProductViewActivity extends AppCompatActivity implements VariantAdapter.OnVariantChangeListener {
 
     // Views
-    private TextView tvProductName, tvProductId, tvProductPrice,tvProductDescription, tvStatusBadge;
+    private TextView tvProductName, tvProductId, tvProductPrice, tvProductDescription, tvStatusBadge;
     private TextView tvVariantsCount, tvActiveVariants, tvTotalStock, tvVariantsCountHeader;
     private TextView tvRating, tvErrorTitle, tvErrorMessage;
     private SwitchCompat switchProductStatus;
@@ -55,6 +67,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private RatingBar ratingBar;
     private ImageView ivProductImage;
     private ExtendedFloatingActionButton fabAddVariant;
+    private MaterialButton btnEditPrice;
 
     private ProgressBar progressBar;
 
@@ -103,7 +116,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         // Main views
         tvProductName = findViewById(R.id.tvProductName);
         tvProductId = findViewById(R.id.tvProductId);
-        tvProductPrice=findViewById(R.id.tvProductPrice);
+        tvProductPrice = findViewById(R.id.tvProductPrice);
         tvProductDescription = findViewById(R.id.tvProductDescription);
         tvStatusBadge = findViewById(R.id.tvStatusBadge);
         switchProductStatus = findViewById(R.id.switchProductStatus);
@@ -113,6 +126,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         tvRating = findViewById(R.id.tvRating);
         progressBar = findViewById(R.id.progressBar);
         fabAddVariant = findViewById(R.id.fabAddVariant);
+        btnEditPrice = findViewById(R.id.btnEditPrice);
 
         // Stats views
         tvVariantsCount = findViewById(R.id.tvVariantsCount);
@@ -175,6 +189,256 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
         // Add Variant FAB
         fabAddVariant.setOnClickListener(v -> showAddVariantDialog());
+
+        // Edit Price Button
+        btnEditPrice.setOnClickListener(v -> showEditPriceDialog());
+    }
+
+    private void showEditPriceDialog() {
+        // Create custom dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_price, null);
+        builder.setView(dialogView);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Set dialog window properties
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
+            window.setGravity(Gravity.CENTER);
+
+            // Add animation
+            window.setWindowAnimations(R.style.DialogAnimation);
+        }
+
+        // Initialize views
+        TextView tvCurrentPrice = dialogView.findViewById(R.id.tvCurrentPrice);
+        TextInputEditText etNewPrice = dialogView.findViewById(R.id.etNewPrice);
+        TextInputLayout textInputLayoutPrice = dialogView.findViewById(R.id.textInputLayoutPrice);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
+        MaterialButton btnUpdate = dialogView.findViewById(R.id.btnUpdate);
+        MaterialButton btnSuggestion1 = dialogView.findViewById(R.id.btnSuggestion1);
+        MaterialButton btnSuggestion2 = dialogView.findViewById(R.id.btnSuggestion2);
+        MaterialButton btnSuggestion3 = dialogView.findViewById(R.id.btnSuggestion3);
+        LinearLayout layoutWarning = dialogView.findViewById(R.id.layoutWarning);
+        TextView tvWarning = dialogView.findViewById(R.id.tvWarning);
+
+        // Set current price
+        String currentPrice = tvProductPrice.getText().toString().replace("₹", "").trim();
+        tvCurrentPrice.setText("₹" + currentPrice);
+        etNewPrice.setText(currentPrice);
+        etNewPrice.setSelection(etNewPrice.getText().length());
+
+        // Price validation and warning
+        etNewPrice.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String newPriceStr = s.toString().trim();
+                if (!newPriceStr.isEmpty()) {
+                    try {
+                        double currentPriceVal = Double.parseDouble(currentPrice);
+                        double newPriceVal = Double.parseDouble(newPriceStr);
+
+                        if (newPriceVal < currentPriceVal * 0.5) {
+                            // Price reduced by more than 50%
+                            layoutWarning.setVisibility(View.VISIBLE);
+                            tvWarning.setText("Price reduced significantly (over 50%)");
+                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color));
+                        } else if (newPriceVal > currentPriceVal * 2) {
+                            // Price increased by more than 100%
+                            layoutWarning.setVisibility(View.VISIBLE);
+                            tvWarning.setText("Price increased significantly (over 100%)");
+                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color));
+                        } else if (newPriceVal < 1) {
+                            // Price too low
+                            layoutWarning.setVisibility(View.VISIBLE);
+                            tvWarning.setText("Price seems too low");
+                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color));
+                        } else {
+                            layoutWarning.setVisibility(View.GONE);
+                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.colorPrimary));
+                        }
+                    } catch (NumberFormatException e) {
+                        layoutWarning.setVisibility(View.GONE);
+                    }
+                } else {
+                    layoutWarning.setVisibility(View.GONE);
+                }
+            }
+        });
+
+        // Suggestion buttons
+        btnSuggestion1.setOnClickListener(v -> {
+            try {
+                double current = Double.parseDouble(currentPrice);
+                double newPrice = current + 10;
+                etNewPrice.setText(String.valueOf((int) newPrice));
+                etNewPrice.setSelection(etNewPrice.getText().length());
+            } catch (NumberFormatException e) {
+                etNewPrice.setText("10");
+            }
+        });
+
+        btnSuggestion2.setOnClickListener(v -> {
+            try {
+                double current = Double.parseDouble(currentPrice);
+                double newPrice = current + 20;
+                etNewPrice.setText(String.valueOf((int) newPrice));
+                etNewPrice.setSelection(etNewPrice.getText().length());
+            } catch (NumberFormatException e) {
+                etNewPrice.setText("20");
+            }
+        });
+
+        btnSuggestion3.setOnClickListener(v -> {
+            try {
+                double current = Double.parseDouble(currentPrice);
+                double newPrice = current + 50;
+                etNewPrice.setText(String.valueOf((int) newPrice));
+                etNewPrice.setSelection(etNewPrice.getText().length());
+            } catch (NumberFormatException e) {
+                etNewPrice.setText("50");
+            }
+        });
+
+        // Cancel button
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        // Update button
+        btnUpdate.setOnClickListener(v -> {
+            String newPrice = etNewPrice.getText().toString().trim();
+            if (!newPrice.isEmpty()) {
+                try {
+                    double priceValue = Double.parseDouble(newPrice);
+                    if (priceValue <= 0) {
+                        textInputLayoutPrice.setError("Price must be greater than 0");
+                        return;
+                    }
+
+                    if (priceValue > 1000000) {
+                        textInputLayoutPrice.setError("Price seems too high");
+                        return;
+                    }
+
+                    textInputLayoutPrice.setError(null);
+                    updateProductPrice(newPrice);
+                    dialog.dismiss();
+
+                } catch (NumberFormatException e) {
+                    textInputLayoutPrice.setError("Please enter a valid price");
+                }
+            } else {
+                textInputLayoutPrice.setError("Please enter a price");
+            }
+        });
+
+        // Clear error when user starts typing
+        etNewPrice.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                textInputLayoutPrice.setError(null);
+            }
+        });
+    }
+
+    private void updateProductPrice(String newPrice) {
+        showLoadingState();
+
+        // Create request body
+        RequestBody requestBody = new FormBody.Builder()
+                .add("prod_price", newPrice)
+                .build();
+
+        // Build the request
+        String url = Attributes.Main_Url + "store/productUpdate/" + productId;
+        Log.d(TAG, "Updating product price - URL: " + url + ", Price: " + newPrice);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                runOnUiThread(() -> {
+                    hideLoadingState();
+                    Log.e(TAG, "Product price update failed: " + e.getMessage());
+                    Toast.makeText(ProductViewActivity.this,
+                            "Failed to update price: Network error", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBodyString = response.body() != null ? response.body().string() : "";
+                Log.d(TAG, "Price update response: " + responseBodyString);
+
+                runOnUiThread(() -> {
+                    hideLoadingState();
+                    try {
+                        JSONObject responseObject = new JSONObject(responseBodyString);
+
+                        if (response.isSuccessful()) {
+                            // Check for success in different possible response formats
+                            boolean isSuccess = false;
+                            String message = "Price updated successfully";
+
+                            if (responseObject.has("status")) {
+                                String status = responseObject.optString("status", "");
+                                isSuccess = "success".equalsIgnoreCase(status) || "true".equalsIgnoreCase(status);
+                            } else if (responseObject.has("success")) {
+                                isSuccess = responseObject.getBoolean("success");
+                            } else {
+                                // If no status field, consider 200 response as success
+                                isSuccess = response.isSuccessful();
+                            }
+
+                            if (responseObject.has("message")) {
+                                message = responseObject.getString("message");
+                            }
+
+                            if (isSuccess) {
+                                // Show success message
+                                Toast.makeText(ProductViewActivity.this, message, Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, "Product price updated successfully");
+
+                                // REFRESH THE PRODUCT DATA TO SHOW UPDATED PRICE
+                                loadProductDataFromAPI();
+
+                            } else {
+                                String errorMessage = responseObject.optString("error", "Failed to update price");
+                                Log.e(TAG, "Price update failed: " + errorMessage);
+                                Toast.makeText(ProductViewActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            String errorMessage = "Server error: " + response.code();
+                            Log.e(TAG, "Price update failed: " + errorMessage);
+                            Toast.makeText(ProductViewActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Error parsing price update response: " + e.getMessage());
+                        // Even if parsing fails, refresh data if response was successful
+                        if (response.isSuccessful()) {
+                            Toast.makeText(ProductViewActivity.this, "Price updated successfully", Toast.LENGTH_SHORT).show();
+                            // REFRESH THE PRODUCT DATA TO SHOW UPDATED PRICE
+                            loadProductDataFromAPI();
+                        } else {
+                            Toast.makeText(ProductViewActivity.this, "Failed to update price", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private void updateStatusBadge(boolean isActive) {
@@ -410,13 +674,17 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             if (product.has("prod_name")) {
                 productName = product.getString("prod_name");
                 tvProductName.setText(productName);
-                tvProductPrice.setText(product.getString("prod_price"));
-
 
                 // Update toolbar title
                 if (getSupportActionBar() != null) {
                     getSupportActionBar().setTitle(productName);
                 }
+            }
+
+            // Display product price
+            if (product.has("prod_price")) {
+                String price = product.getString("prod_price");
+                tvProductPrice.setText("₹" + price);
             }
 
             // Display product ID
