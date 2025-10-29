@@ -107,8 +107,8 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
     }
 
     class VariantViewHolder extends RecyclerView.ViewHolder {
-        TextView tvVariantMeasure, tvSkuCode, tvStock, tvDiscountBadge, tvDiscountLabel, tvActualPrice;
-        EditText etVariantPrice, etDiscountValue;
+        TextView tvVariantMeasure, tvSkuCode, tvStock, tvDiscountBadge, tvDiscountLabel, tvActualPrice,etVariantPrice;
+        TextView  etDiscountValue;
         SwitchCompat switchVariantStatus;
         MaterialButtonToggleGroup toggleDiscountType;
         MaterialButton btnNoDiscount, btnFlat, btnPercentage, btnUpdateVariant, btnDeleteVariant, btnEditVariant;
@@ -177,7 +177,7 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
             tvDiscountLabel = itemView.findViewById(R.id.tvDiscountLabel);
             tvActualPrice = itemView.findViewById(R.id.tvActualPrice);
             etDiscountValue = itemView.findViewById(R.id.etDiscountValue);
-            btnUpdateVariant = itemView.findViewById(R.id.btnUpdateVariant);
+//            btnUpdateVariant = itemView.findViewById(R.id.btnUpdateVariant);
             btnDeleteVariant = itemView.findViewById(R.id.btnDeleteVariant);
             btnEditVariant = itemView.findViewById(R.id.btnEditVariant);
         }
@@ -210,15 +210,15 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
                 int price = variant.optInt("price", 0);
                 int discPrice = variant.optInt("disc_price", 0);
 
-                etVariantPrice.removeTextChangedListener(priceTextWatcher);
+//                etVariantPrice.removeTextChangedListener(priceTextWatcher);
                 etVariantPrice.setText(String.valueOf(Math.max(0, price)));
-                etVariantPrice.addTextChangedListener(priceTextWatcher);
+//                etVariantPrice.addTextChangedListener(priceTextWatcher);
 
                 // Set discount type and show appropriate layout
                 currentDiscountType = variant.optString("disc_type", DISCOUNT_TYPE_NONE);
 
                 // Remove listener temporarily to avoid triggering change detection
-                toggleDiscountType.removeOnButtonCheckedListener(discountTypeListener);
+//                toggleDiscountType.removeOnButtonCheckedListener(discountTypeListener);
 
                 // Set the correct button checked state based on discount type
                 if (DISCOUNT_TYPE_FLAT.equals(currentDiscountType)) {
@@ -232,12 +232,12 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
                     hideDiscountLayout();
                 }
 
-                toggleDiscountType.addOnButtonCheckedListener(discountTypeListener);
+//                toggleDiscountType.addOnButtonCheckedListener(discountTypeListener);
 
                 // Set discount value
-                etDiscountValue.removeTextChangedListener(discountTextWatcher);
+//                etDiscountValue.removeTextChangedListener(discountTextWatcher);
                 etDiscountValue.setText(String.valueOf(Math.max(0, discPrice)));
-                etDiscountValue.addTextChangedListener(discountTextWatcher);
+//                etDiscountValue.addTextChangedListener(discountTextWatcher);
 
                 // Update actual price and discount badge
                 updateActualPrice();
@@ -304,55 +304,7 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
         }
 
         private void setupListeners() {
-            btnUpdateVariant.setOnClickListener(v -> {
-                if (listener != null && hasChanges && currentPosition != RecyclerView.NO_POSITION) {
-                    try {
-                        JSONObject updatedVariant = variantsList.get(currentPosition);
 
-                        // Validate and get current values
-                        String priceStr = etVariantPrice.getText().toString().trim();
-                        String discountValueStr = etDiscountValue.getText().toString().trim();
-
-                        if (TextUtils.isEmpty(priceStr)) {
-                            Log.w(TAG, "Price is empty");
-                            return;
-                        }
-
-                        // Update the variant with current values
-                        updatedVariant.put("price", Integer.parseInt(priceStr));
-                        updatedVariant.put("disc_type", currentDiscountType);
-
-                        // For no discount, set discount price to 0
-                        if (DISCOUNT_TYPE_NONE.equals(currentDiscountType)) {
-                            updatedVariant.put("disc_price", 0);
-                            etDiscountValue.setText("0");
-                        } else if (!TextUtils.isEmpty(discountValueStr)) {
-                            int discountValue = Integer.parseInt(discountValueStr);
-                            updatedVariant.put("disc_price", discountValue);
-                        } else {
-                            updatedVariant.put("disc_price", 0);
-                            etDiscountValue.setText("0");
-                        }
-
-                        // Update original variant for change detection
-                        this.originalVariant = new JSONObject(updatedVariant.toString());
-
-                        // Call update listener
-                        listener.onVariantUpdateClicked(currentPosition, updatedVariant);
-
-                        // Hide update button after click
-                        btnUpdateVariant.setVisibility(View.GONE);
-                        hasChanges = false;
-
-                        // Refresh the UI with updated values
-                        updateActualPrice();
-                        updateDiscountBadge();
-
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error preparing update: " + e.getMessage());
-                    }
-                }
-            });
 
             // Setup delete button listener
             btnDeleteVariant.setOnClickListener(v -> {
@@ -416,9 +368,9 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
                 TextView tvFinalPrice = dialogView.findViewById(R.id.tvFinalPrice);
                 MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
                 MaterialButton btnUpdate = dialogView.findViewById(R.id.btnUpdate);
-                MaterialButton btnSuggestion1 = dialogView.findViewById(R.id.btnSuggestion1);
-                MaterialButton btnSuggestion2 = dialogView.findViewById(R.id.btnSuggestion2);
-                MaterialButton btnSuggestion3 = dialogView.findViewById(R.id.btnSuggestion3);
+//                MaterialButton btnSuggestion1 = dialogView.findViewById(R.id.btnSuggestion1);
+//                MaterialButton btnSuggestion2 = dialogView.findViewById(R.id.btnSuggestion2);
+//                MaterialButton btnSuggestion3 = dialogView.findViewById(R.id.btnSuggestion3);
                 LinearLayout layoutWarning = dialogView.findViewById(R.id.layoutWarning);
                 TextView tvWarning = dialogView.findViewById(R.id.tvWarning);
 
@@ -493,9 +445,9 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
                 });
 
                 // Suggestion buttons
-                btnSuggestion1.setOnClickListener(v -> adjustPrice(etNewPrice, 10));
-                btnSuggestion2.setOnClickListener(v -> adjustPrice(etNewPrice, 20));
-                btnSuggestion3.setOnClickListener(v -> adjustPrice(etNewPrice, 50));
+//                btnSuggestion1.setOnClickListener(v -> adjustPrice(etNewPrice, 10));
+//                btnSuggestion2.setOnClickListener(v -> adjustPrice(etNewPrice, 20));
+//                btnSuggestion3.setOnClickListener(v -> adjustPrice(etNewPrice, 50));
 
                 // Cancel button
                 btnCancel.setOnClickListener(v -> dialog.dismiss());
@@ -515,18 +467,18 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VariantV
         }
 
         // Helper method to adjust price
-        private void adjustPrice(TextInputEditText etNewPrice, int amount) {
-            try {
-                String currentPriceStr = etNewPrice.getText().toString().trim();
-                if (!currentPriceStr.isEmpty()) {
-                    double newPrice = Double.parseDouble(currentPriceStr) + amount;
-                    etNewPrice.setText(String.valueOf((int) newPrice));
-                    etNewPrice.setSelection(etNewPrice.getText().length());
-                }
-            } catch (NumberFormatException e) {
-                etNewPrice.setText(String.valueOf(amount));
-            }
-        }
+//        private void adjustPrice(TextInputEditText etNewPrice, int amount) {
+//            try {
+//                String currentPriceStr = etNewPrice.getText().toString().trim();
+//                if (!currentPriceStr.isEmpty()) {
+//                    double newPrice = Double.parseDouble(currentPriceStr) + amount;
+//                    etNewPrice.setText(String.valueOf((int) newPrice));
+//                    etNewPrice.setSelection(etNewPrice.getText().length());
+//                }
+//            } catch (NumberFormatException e) {
+//                etNewPrice.setText(String.valueOf(amount));
+//            }
+//        }
 
         // Helper method to update final price
         private void updateFinalPrice(TextInputEditText etNewPrice, TextInputEditText etDiscountValue,

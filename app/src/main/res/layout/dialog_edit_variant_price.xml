@@ -271,61 +271,61 @@
 
         </LinearLayout>
 
-        <!-- Price Suggestions -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Quick Adjustments"
-            android:textSize="12sp"
-            android:textColor="#718096"
-            android:textStyle="bold"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
+<!--        &lt;!&ndash; Price Suggestions &ndash;&gt;-->
+<!--        <TextView-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="Quick Adjustments"-->
+<!--            android:textSize="12sp"-->
+<!--            android:textColor="#718096"-->
+<!--            android:textStyle="bold"-->
+<!--            android:layout_marginTop="24dp"-->
+<!--            android:layout_marginBottom="8dp" />-->
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
+<!--        <LinearLayout-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal"-->
+<!--            android:gravity="center">-->
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSuggestion1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="+10"
-                android:textSize="12sp"
-                android:layout_marginEnd="4dp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                app:cornerRadius="8dp"
-                app:strokeColor="#E2E8F0" />
+<!--            <com.google.android.material.button.MaterialButton-->
+<!--                android:id="@+id/btnSuggestion1"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="+10"-->
+<!--                android:textSize="12sp"-->
+<!--                android:layout_marginEnd="4dp"-->
+<!--                style="@style/Widget.Material3.Button.OutlinedButton"-->
+<!--                app:cornerRadius="8dp"-->
+<!--                app:strokeColor="#E2E8F0" />-->
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSuggestion2"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="+20"
-                android:textSize="12sp"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                app:cornerRadius="8dp"
-                app:strokeColor="#E2E8F0" />
+<!--            <com.google.android.material.button.MaterialButton-->
+<!--                android:id="@+id/btnSuggestion2"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="+20"-->
+<!--                android:textSize="12sp"-->
+<!--                android:layout_marginStart="4dp"-->
+<!--                android:layout_marginEnd="4dp"-->
+<!--                style="@style/Widget.Material3.Button.OutlinedButton"-->
+<!--                app:cornerRadius="8dp"-->
+<!--                app:strokeColor="#E2E8F0" />-->
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSuggestion3"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="+50"
-                android:textSize="12sp"
-                android:layout_marginStart="4dp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                app:cornerRadius="8dp"
-                app:strokeColor="#E2E8F0" />
+<!--            <com.google.android.material.button.MaterialButton-->
+<!--                android:id="@+id/btnSuggestion3"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="+50"-->
+<!--                android:textSize="12sp"-->
+<!--                android:layout_marginStart="4dp"-->
+<!--                style="@style/Widget.Material3.Button.OutlinedButton"-->
+<!--                app:cornerRadius="8dp"-->
+<!--                app:strokeColor="#E2E8F0" />-->
 
-        </LinearLayout>
+<!--        </LinearLayout>-->
 
         <!-- Warning Message -->
         <LinearLayout

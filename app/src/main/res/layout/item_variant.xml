@@ -198,7 +198,7 @@
                         android:textSize="14sp"
                         android:textColor="#475569" />
 
-                    <EditText
+                    <TextView
                         android:id="@+id/etVariantPrice"
                         android:layout_width="80dp"
                         android:layout_height="wrap_content"
@@ -206,11 +206,10 @@
                         android:textSize="16sp"
                         android:textAlignment="center"
                         android:background="@drawable/bg_rounded_corners"
-                        android:imeOptions="actionDone"
-                        android:inputType="numberDecimal"
+
                         android:textColor="#1E293B"
                         android:textStyle="bold"
-                        android:maxLines="1" />
+                      />
 
                 </LinearLayout>
 
@@ -236,6 +235,7 @@
                         android:id="@+id/tvActualPrice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@drawable/bg_rounded_corners"
                         android:text="₹0.00"
                         android:textSize="16sp"
                         android:textColor="#16A34A"
@@ -248,6 +248,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    android:visibility="gone"
                     android:layout_marginBottom="16dp">
 
                     <TextView
@@ -270,6 +271,7 @@
                             android:id="@+id/toggleDiscountType"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:visibility="gone"
                             app:singleSelection="true"
                             app:selectionRequired="true"
                             android:gravity="center">
@@ -320,7 +322,7 @@
                         android:textSize="14sp"
                         android:textColor="#475569" />
 
-                    <EditText
+                    <TextView
                         android:id="@+id/etDiscountValue"
                         android:layout_width="80dp"
                         android:layout_height="wrap_content"
@@ -328,11 +330,9 @@
                         android:textSize="16sp"
                         android:textAlignment="center"
                         android:background="@drawable/bg_rounded_corners"
-                        android:imeOptions="actionDone"
-                        android:inputType="numberDecimal"
                         android:textColor="#1E293B"
                         android:textStyle="bold"
-                        android:maxLines="1" />
+                     />
 
                 </LinearLayout>
 
@@ -344,19 +344,19 @@
                     android:gravity="center_vertical">
 
                     <!-- Update Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnUpdateVariant"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Update Price"
-                        android:textSize="12sp"
-                        android:visibility="gone"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        app:icon="@drawable/ic_update"
-                        app:iconGravity="textStart"
-                        app:iconPadding="4dp"
-                        app:iconTint="@color/primaryColor"
-                        android:textColor="@color/primaryColor" />
+<!--                    <com.google.android.material.button.MaterialButton-->
+<!--                        android:id="@+id/btnUpdateVariant"-->
+<!--                        android:layout_width="wrap_content"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:text="Update Price"-->
+<!--                        android:textSize="12sp"-->
+<!--                        android:visibility="gone"-->
+<!--                        style="@style/Widget.Material3.Button.OutlinedButton"-->
+<!--                        app:icon="@drawable/ic_update"-->
+<!--                        app:iconGravity="textStart"-->
+<!--                        app:iconPadding="4dp"-->
+<!--                        app:iconTint="@color/primaryColor"-->
+<!--                        android:textColor="@color/primaryColor" />-->
 
                     <View
                         android:layout_width="0dp"

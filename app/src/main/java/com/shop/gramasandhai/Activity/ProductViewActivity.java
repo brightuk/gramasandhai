@@ -220,9 +220,9 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         TextInputLayout textInputLayoutPrice = dialogView.findViewById(R.id.textInputLayoutPrice);
         MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
         MaterialButton btnUpdate = dialogView.findViewById(R.id.btnUpdate);
-        MaterialButton btnSuggestion1 = dialogView.findViewById(R.id.btnSuggestion1);
-        MaterialButton btnSuggestion2 = dialogView.findViewById(R.id.btnSuggestion2);
-        MaterialButton btnSuggestion3 = dialogView.findViewById(R.id.btnSuggestion3);
+//        MaterialButton btnSuggestion1 = dialogView.findViewById(R.id.btnSuggestion1);
+//        MaterialButton btnSuggestion2 = dialogView.findViewById(R.id.btnSuggestion2);
+//        MaterialButton btnSuggestion3 = dialogView.findViewById(R.id.btnSuggestion3);
         LinearLayout layoutWarning = dialogView.findViewById(R.id.layoutWarning);
         TextView tvWarning = dialogView.findViewById(R.id.tvWarning);
 
@@ -276,39 +276,39 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             }
         });
 
-        // Suggestion buttons
-        btnSuggestion1.setOnClickListener(v -> {
-            try {
-                double current = Double.parseDouble(currentPrice);
-                double newPrice = current + 10;
-                etNewPrice.setText(String.valueOf((int) newPrice));
-                etNewPrice.setSelection(etNewPrice.getText().length());
-            } catch (NumberFormatException e) {
-                etNewPrice.setText("10");
-            }
-        });
-
-        btnSuggestion2.setOnClickListener(v -> {
-            try {
-                double current = Double.parseDouble(currentPrice);
-                double newPrice = current + 20;
-                etNewPrice.setText(String.valueOf((int) newPrice));
-                etNewPrice.setSelection(etNewPrice.getText().length());
-            } catch (NumberFormatException e) {
-                etNewPrice.setText("20");
-            }
-        });
-
-        btnSuggestion3.setOnClickListener(v -> {
-            try {
-                double current = Double.parseDouble(currentPrice);
-                double newPrice = current + 50;
-                etNewPrice.setText(String.valueOf((int) newPrice));
-                etNewPrice.setSelection(etNewPrice.getText().length());
-            } catch (NumberFormatException e) {
-                etNewPrice.setText("50");
-            }
-        });
+//        // Suggestion buttons
+//        btnSuggestion1.setOnClickListener(v -> {
+//            try {
+//                double current = Double.parseDouble(currentPrice);
+//                double newPrice = current + 10;
+//                etNewPrice.setText(String.valueOf((int) newPrice));
+//                etNewPrice.setSelection(etNewPrice.getText().length());
+//            } catch (NumberFormatException e) {
+//                etNewPrice.setText("10");
+//            }
+//        });
+//
+//        btnSuggestion2.setOnClickListener(v -> {
+//            try {
+//                double current = Double.parseDouble(currentPrice);
+//                double newPrice = current + 20;
+//                etNewPrice.setText(String.valueOf((int) newPrice));
+//                etNewPrice.setSelection(etNewPrice.getText().length());
+//            } catch (NumberFormatException e) {
+//                etNewPrice.setText("20");
+//            }
+//        });
+//
+//        btnSuggestion3.setOnClickListener(v -> {
+//            try {
+//                double current = Double.parseDouble(currentPrice);
+//                double newPrice = current + 50;
+//                etNewPrice.setText(String.valueOf((int) newPrice));
+//                etNewPrice.setSelection(etNewPrice.getText().length());
+//            } catch (NumberFormatException e) {
+//                etNewPrice.setText("50");
+//            }
+//        });
 
         // Cancel button
         btnCancel.setOnClickListener(v -> dialog.dismiss());
@@ -1025,6 +1025,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 runOnUiThread(() -> {
                     if (response.isSuccessful()) {
+                        Log.d("API_SUCCESSdd", String.valueOf(response));
                         Toast.makeText(ProductViewActivity.this, "Variant updated successfully", Toast.LENGTH_SHORT).show();
                     } else {
                         Log.e("API_ERROR", "Variant update failed: " + response.code());
