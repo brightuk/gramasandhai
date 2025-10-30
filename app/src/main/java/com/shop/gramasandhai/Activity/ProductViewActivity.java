@@ -1,14 +1,17 @@
 package com.shop.gramasandhai.Activity;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
@@ -27,12 +30,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.shop.gramasandhai.Adapter.VariantAdapter;
@@ -44,13 +49,19 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -89,6 +100,16 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private boolean isUpdatingProductStatus = false;
 
     private OkHttpClient client;
+
+    // Image handling variables
+    private Uri selectedImageUri = null;
+    private File selectedImageFile = null;
+    private static final int PICK_IMAGE_REQUEST = 1002;
+    private static final int PERMISSION_REQUEST_CODE = 1003;
+
+    // Dialog views cache
+    private AlertDialog currentEditDialog;
+    private ImageView dialogProductImage;
 
     private static final String TAG = "ProductViewActivity";
 
@@ -191,46 +212,87 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         fabAddVariant.setOnClickListener(v -> showAddVariantDialog());
 
         // Edit Price Button
-        btnEditPrice.setOnClickListener(v -> showEditPriceDialog());
+        btnEditPrice.setOnClickListener(v -> showEditProductDialog());
     }
 
-    private void showEditPriceDialog() {
+    private void showEditProductDialog() {
         // Create custom dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_price, null);
         builder.setView(dialogView);
 
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        currentEditDialog = builder.create();
+        currentEditDialog.show();
 
         // Set dialog window properties
-        Window window = dialog.getWindow();
+        Window window = currentEditDialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
             window.setGravity(Gravity.CENTER);
-
-            // Add animation
             window.setWindowAnimations(R.style.DialogAnimation);
         }
 
         // Initialize views
+        dialogProductImage = dialogView.findViewById(R.id.ivProductImage);
+        TextInputEditText etProductName = dialogView.findViewById(R.id.etProductName);
+        TextInputLayout textInputLayoutName = dialogView.findViewById(R.id.textInputLayoutName);
         TextView tvCurrentPrice = dialogView.findViewById(R.id.tvCurrentPrice);
         TextInputEditText etNewPrice = dialogView.findViewById(R.id.etNewPrice);
         TextInputLayout textInputLayoutPrice = dialogView.findViewById(R.id.textInputLayoutPrice);
         MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
         MaterialButton btnUpdate = dialogView.findViewById(R.id.btnUpdate);
-//        MaterialButton btnSuggestion1 = dialogView.findViewById(R.id.btnSuggestion1);
-//        MaterialButton btnSuggestion2 = dialogView.findViewById(R.id.btnSuggestion2);
-//        MaterialButton btnSuggestion3 = dialogView.findViewById(R.id.btnSuggestion3);
         LinearLayout layoutWarning = dialogView.findViewById(R.id.layoutWarning);
         TextView tvWarning = dialogView.findViewById(R.id.tvWarning);
+        FloatingActionButton fabEditImage = dialogView.findViewById(R.id.fabEditImage);
 
-        // Set current price
-        String currentPrice = tvProductPrice.getText().toString().replace("₹", "").trim();
-        tvCurrentPrice.setText("₹" + currentPrice);
-        etNewPrice.setText(currentPrice);
-        etNewPrice.setSelection(etNewPrice.getText().length());
+        // Set current data
+        try {
+            if (productData != null) {
+                // Set product name
+                if (productData.has("prod_name")) {
+                    String productName = productData.getString("prod_name");
+                    etProductName.setText(productName);
+                    etProductName.setSelection(etProductName.getText().length());
+                }
+
+                // Set current price
+                if (productData.has("prod_price")) {
+                    String currentPrice = productData.getString("prod_price");
+                    tvCurrentPrice.setText("₹" + currentPrice);
+                    etNewPrice.setText(currentPrice);
+                    etNewPrice.setSelection(etNewPrice.getText().length());
+                }
+
+                // Load product image
+                if (productData.has("main_image")) {
+                    String imageUrl = Attributes.Root_Url + "uploads/images/" + productData.getString("main_image");
+                    if (imageUrl != null && !imageUrl.isEmpty() && !imageUrl.equals("null")) {
+                        Picasso.get()
+                                .load(imageUrl)
+                                .placeholder(R.drawable.ic_product_placeholder)
+                                .error(R.drawable.ic_product_placeholder)
+                                .into(dialogProductImage);
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Error setting dialog data: " + e.getMessage());
+        }
+
+        // If we have a selected image from previous selection, show it
+        if (selectedImageUri != null) {
+            Picasso.get()
+                    .load(selectedImageUri)
+                    .placeholder(R.drawable.ic_product_placeholder)
+                    .error(R.drawable.ic_product_placeholder)
+                    .into(dialogProductImage);
+        }
+
+        // Image selection
+        fabEditImage.setOnClickListener(v -> {
+            selectImageFromGallery();
+        });
 
         // Price validation and warning
         etNewPrice.addTextChangedListener(new TextWatcher() {
@@ -243,9 +305,11 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             @Override
             public void afterTextChanged(Editable s) {
                 String newPriceStr = s.toString().trim();
-                if (!newPriceStr.isEmpty()) {
+                String currentPriceStr = tvCurrentPrice.getText().toString().replace("₹", "").trim();
+
+                if (!newPriceStr.isEmpty() && !currentPriceStr.isEmpty()) {
                     try {
-                        double currentPriceVal = Double.parseDouble(currentPrice);
+                        double currentPriceVal = Double.parseDouble(currentPriceStr);
                         double newPriceVal = Double.parseDouble(newPriceStr);
 
                         if (newPriceVal < currentPriceVal * 0.5) {
@@ -276,72 +340,67 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             }
         });
 
-//        // Suggestion buttons
-//        btnSuggestion1.setOnClickListener(v -> {
-//            try {
-//                double current = Double.parseDouble(currentPrice);
-//                double newPrice = current + 10;
-//                etNewPrice.setText(String.valueOf((int) newPrice));
-//                etNewPrice.setSelection(etNewPrice.getText().length());
-//            } catch (NumberFormatException e) {
-//                etNewPrice.setText("10");
-//            }
-//        });
-//
-//        btnSuggestion2.setOnClickListener(v -> {
-//            try {
-//                double current = Double.parseDouble(currentPrice);
-//                double newPrice = current + 20;
-//                etNewPrice.setText(String.valueOf((int) newPrice));
-//                etNewPrice.setSelection(etNewPrice.getText().length());
-//            } catch (NumberFormatException e) {
-//                etNewPrice.setText("20");
-//            }
-//        });
-//
-//        btnSuggestion3.setOnClickListener(v -> {
-//            try {
-//                double current = Double.parseDouble(currentPrice);
-//                double newPrice = current + 50;
-//                etNewPrice.setText(String.valueOf((int) newPrice));
-//                etNewPrice.setSelection(etNewPrice.getText().length());
-//            } catch (NumberFormatException e) {
-//                etNewPrice.setText("50");
-//            }
-//        });
-
         // Cancel button
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnCancel.setOnClickListener(v -> {
+            // Reset selected image when canceling
+            selectedImageUri = null;
+            selectedImageFile = null;
+            currentEditDialog.dismiss();
+        });
 
         // Update button
         btnUpdate.setOnClickListener(v -> {
+            String productName = etProductName.getText().toString().trim();
             String newPrice = etNewPrice.getText().toString().trim();
+
+            boolean hasError = false;
+
+            // Validate product name
+            if (productName.isEmpty()) {
+                textInputLayoutName.setError("Product name is required");
+                hasError = true;
+            } else if (productName.length() < 2) {
+                textInputLayoutName.setError("Product name must be at least 2 characters");
+                hasError = true;
+            } else {
+                textInputLayoutName.setError(null);
+            }
+
+            // Validate price
             if (!newPrice.isEmpty()) {
                 try {
                     double priceValue = Double.parseDouble(newPrice);
                     if (priceValue <= 0) {
                         textInputLayoutPrice.setError("Price must be greater than 0");
-                        return;
-                    }
-
-                    if (priceValue > 1000000) {
+                        hasError = true;
+                    } else if (priceValue > 1000000) {
                         textInputLayoutPrice.setError("Price seems too high");
-                        return;
+                        hasError = true;
+                    } else {
+                        textInputLayoutPrice.setError(null);
                     }
-
-                    textInputLayoutPrice.setError(null);
-                    updateProductPrice(newPrice);
-                    dialog.dismiss();
-
                 } catch (NumberFormatException e) {
                     textInputLayoutPrice.setError("Please enter a valid price");
+                    hasError = true;
                 }
             } else {
                 textInputLayoutPrice.setError("Please enter a price");
+                hasError = true;
+            }
+
+            if (!hasError) {
+                updateProductDetails(productName, newPrice, selectedImageFile);
+                currentEditDialog.dismiss();
             }
         });
 
-        // Clear error when user starts typing
+        // Clear errors when user starts typing
+        etProductName.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                textInputLayoutName.setError(null);
+            }
+        });
+
         etNewPrice.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 textInputLayoutPrice.setError(null);
@@ -349,17 +408,120 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         });
     }
 
-    private void updateProductPrice(String newPrice) {
+    private void selectImageFromGallery() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ - No permission needed for gallery access
+            openImagePicker();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6-12 - Request READ_EXTERNAL_STORAGE permission
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        PERMISSION_REQUEST_CODE);
+            } else {
+                openImagePicker();
+            }
+        } else {
+            // Android 5 and below - No runtime permissions needed
+            openImagePicker();
+        }
+    }
+
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/jpeg", "image/png", "image/jpg"});
+        startActivityForResult(Intent.createChooser(intent, "Select Product Image"), PICK_IMAGE_REQUEST);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openImagePicker();
+            } else {
+                Toast.makeText(this, "Permission denied to read storage", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 1001 && resultCode == RESULT_OK) {
+            // Refresh the product data to show the new variant
+            loadProductDataFromAPI();
+            Toast.makeText(this, "Variant added successfully!", Toast.LENGTH_SHORT).show();
+        } else if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
+            selectedImageUri = data.getData();
+
+            if (selectedImageUri != null) {
+                try {
+                    // Convert URI to File
+                    selectedImageFile = getFileFromUri(selectedImageUri);
+
+                    // Update the dialog image immediately if dialog is open
+                    if (currentEditDialog != null && currentEditDialog.isShowing() && dialogProductImage != null) {
+                        Picasso.get()
+                                .load(selectedImageUri)
+                                .placeholder(R.drawable.ic_product_placeholder)
+                                .error(R.drawable.ic_product_placeholder)
+                                .into(dialogProductImage);
+
+                        Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+                    }
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing selected image: " + e.getMessage());
+                    Toast.makeText(this, "Error processing image", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private File getFileFromUri(Uri uri) throws IOException {
+        // Create a temporary file
+        File file = new File(getCacheDir(), "temp_product_image.jpg");
+
+        try (InputStream inputStream = getContentResolver().openInputStream(uri);
+             OutputStream outputStream = new FileOutputStream(file)) {
+
+            byte[] buffer = new byte[4 * 1024]; // 4KB buffer
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, read);
+            }
+            outputStream.flush();
+        }
+
+        return file;
+    }
+
+    private void updateProductDetails(String productName, String newPrice, File imageFile) {
         showLoadingState();
 
-        // Create request body
-        RequestBody requestBody = new FormBody.Builder()
-                .add("prod_price", newPrice)
-                .build();
+        // Create multipart form data
+        MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("prod_name", productName)
+                .addFormDataPart("prod_price", newPrice);
+
+        // Add image file if selected
+        if (imageFile != null && imageFile.exists()) {
+            multipartBuilder.addFormDataPart("main_image",
+                    "product_image.jpg",
+                    RequestBody.create(MediaType.parse("image/*"), imageFile));
+        }
+
+        RequestBody requestBody = multipartBuilder.build();
 
         // Build the request
         String url = Attributes.Main_Url + "store/productUpdate/" + productId;
-        Log.d(TAG, "Updating product price - URL: " + url + ", Price: " + newPrice);
+        Log.d(TAG, "Updating product - URL: " + url + ", Name: " + productName + ", Price: " + newPrice + ", Has Image: " + (imageFile != null));
 
         Request request = new Request.Builder()
                 .url(url)
@@ -372,16 +534,16 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 runOnUiThread(() -> {
                     hideLoadingState();
-                    Log.e(TAG, "Product price update failed: " + e.getMessage());
+                    Log.e(TAG, "Product update failed: " + e.getMessage());
                     Toast.makeText(ProductViewActivity.this,
-                            "Failed to update price: Network error", Toast.LENGTH_SHORT).show();
+                            "Failed to update product: Network error", Toast.LENGTH_SHORT).show();
                 });
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 String responseBodyString = response.body() != null ? response.body().string() : "";
-                Log.d(TAG, "Price update response: " + responseBodyString);
+                Log.d(TAG, "Product update response: " + responseBodyString);
 
                 runOnUiThread(() -> {
                     hideLoadingState();
@@ -389,9 +551,8 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
                         if (response.isSuccessful()) {
-                            // Check for success in different possible response formats
                             boolean isSuccess = false;
-                            String message = "Price updated successfully";
+                            String message = "Product updated successfully";
 
                             if (responseObject.has("status")) {
                                 String status = responseObject.optString("status", "");
@@ -399,7 +560,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                             } else if (responseObject.has("success")) {
                                 isSuccess = responseObject.getBoolean("success");
                             } else {
-                                // If no status field, consider 200 response as success
                                 isSuccess = response.isSuccessful();
                             }
 
@@ -408,38 +568,47 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                             }
 
                             if (isSuccess) {
-                                // Show success message
                                 Toast.makeText(ProductViewActivity.this, message, Toast.LENGTH_SHORT).show();
-                                Log.d(TAG, "Product price updated successfully");
+                                Log.d(TAG, "Product updated successfully");
 
-                                // REFRESH THE PRODUCT DATA TO SHOW UPDATED PRICE
+                                // Reset selected image after successful upload
+                                selectedImageUri = null;
+                                selectedImageFile = null;
+
+                                // Refresh the product data to show updated details
                                 loadProductDataFromAPI();
 
                             } else {
-                                String errorMessage = responseObject.optString("error", "Failed to update price");
-                                Log.e(TAG, "Price update failed: " + errorMessage);
+                                String errorMessage = responseObject.optString("error", "Failed to update product");
+                                Log.e(TAG, "Product update failed: " + errorMessage);
                                 Toast.makeText(ProductViewActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                             }
                         } else {
                             String errorMessage = "Server error: " + response.code();
-                            Log.e(TAG, "Price update failed: " + errorMessage);
+                            Log.e(TAG, "Product update failed: " + errorMessage);
                             Toast.makeText(ProductViewActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                         }
                     } catch (JSONException e) {
-                        Log.e(TAG, "Error parsing price update response: " + e.getMessage());
-                        // Even if parsing fails, refresh data if response was successful
+                        Log.e(TAG, "Error parsing product update response: " + e.getMessage());
                         if (response.isSuccessful()) {
-                            Toast.makeText(ProductViewActivity.this, "Price updated successfully", Toast.LENGTH_SHORT).show();
-                            // REFRESH THE PRODUCT DATA TO SHOW UPDATED PRICE
+                            Toast.makeText(ProductViewActivity.this, "Product updated successfully", Toast.LENGTH_SHORT).show();
+
+                            // Reset selected image
+                            selectedImageUri = null;
+                            selectedImageFile = null;
+
                             loadProductDataFromAPI();
                         } else {
-                            Toast.makeText(ProductViewActivity.this, "Failed to update price", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ProductViewActivity.this, "Failed to update product", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
             }
         });
     }
+
+    // ... REST OF YOUR EXISTING METHODS (loadProductDataFromAPI, displayProductDetails, etc.) ...
+    // Keep all your existing methods below exactly as they were
 
     private void updateStatusBadge(boolean isActive) {
         if (isActive) {
@@ -550,7 +719,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         }
     }
 
-    // Add this method to ProductViewActivity
     private void showAddVariantDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Variant");
@@ -564,18 +732,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         builder.show();
     }
 
-    // Handle the result when returning from AddVariantActivity
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1001 && resultCode == RESULT_OK) {
-            // Refresh the product data to show the new variant
-            loadProductDataFromAPI();
-            Toast.makeText(this, "Variant added successfully!", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    // Add this method to handle variant deletion
     @Override
     public void onVariantDeleteClicked(int position, String variantId) {
         showDeleteConfirmationDialog(position, variantId);
@@ -593,7 +749,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     }
 
     private void deleteVariantFromAPI(int position, String variantId) {
-        // Show a progress dialog for better UX
         AlertDialog progressDialog = new AlertDialog.Builder(this)
                 .setMessage("Deleting variant...")
                 .setCancelable(false)
@@ -629,23 +784,18 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
                         if (response.isSuccessful()) {
-                            // Check for success in different possible response formats
                             boolean isSuccess = false;
                             if (responseObject.has("status")) {
                                 isSuccess = responseObject.getBoolean("status");
                             } else if (responseObject.has("success")) {
                                 isSuccess = responseObject.getBoolean("success");
                             } else {
-                                // If no status field, consider 200 response as success
                                 isSuccess = response.isSuccessful();
                             }
 
                             if (isSuccess) {
                                 Toast.makeText(ProductViewActivity.this, "Variant deleted successfully", Toast.LENGTH_SHORT).show();
-
-                                // Refresh the entire product data
                                 loadProductDataFromAPI();
-
                             } else {
                                 String errorMessage = responseObject.optString("message", "Failed to delete variant");
                                 Log.e("API_ERROR", "Variant deletion failed: " + errorMessage);
@@ -659,8 +809,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                     } catch (JSONException e) {
                         Log.e("JSON_ERROR", "Delete response parsing failed: " + e.getMessage());
                         Toast.makeText(ProductViewActivity.this, "Variant deleted successfully", Toast.LENGTH_SHORT).show();
-
-                        // Even if parsing fails, refresh the data
                         loadProductDataFromAPI();
                     }
                 });
@@ -675,7 +823,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 productName = product.getString("prod_name");
                 tvProductName.setText(productName);
 
-                // Update toolbar title
                 if (getSupportActionBar() != null) {
                     getSupportActionBar().setTitle(productName);
                 }
@@ -700,19 +847,18 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                     tvProductDescription.setText(productDescription);
                     tvProductDescription.setVisibility(TextView.VISIBLE);
                 } else {
-                    tvProductDescription.setVisibility(TextView.GONE);
+                    tvProductDescription.setVisibility(View.GONE);
                 }
             } else {
-                tvProductDescription.setVisibility(TextView.GONE);
+                tvProductDescription.setVisibility(View.GONE);
             }
 
             // Set product status
             if (product.has("status")) {
                 boolean isActive = "1".equals(product.getString("status"));
-                // Remove listener temporarily to avoid triggering
                 switchProductStatus.setOnCheckedChangeListener(null);
                 switchProductStatus.setChecked(isActive);
-                setupListeners(); // Re-setup listeners
+                setupListeners();
                 updateStatusBadge(isActive);
             }
 
@@ -755,16 +901,13 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
             for (JSONObject variant : variantsList) {
                 try {
-                    // Safely get status - handle both string "1"/"0" and boolean true/false
                     String status = variant.optString("status", "0");
                     if ("1".equals(status) || "true".equalsIgnoreCase(status)) {
                         activeVariants++;
                     }
 
-                    // Safely get stock - handle string values like "50 box"
                     if (variant.has("stock")) {
                         String stockValue = variant.optString("stock", "0");
-                        // Extract numeric part from stock string (e.g., "50 box" -> 50)
                         try {
                             String numericStock = stockValue.replaceAll("[^0-9]", "").trim();
                             if (!numericStock.isEmpty()) {
@@ -779,7 +922,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 }
             }
 
-            // Update UI on main thread
             int finalActiveVariants = activeVariants;
             int finalTotalStock = totalStock;
             runOnUiThread(() -> {
@@ -804,8 +946,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
             for (int i = 0; i < variantsArray.length(); i++) {
                 JSONObject variant = variantsArray.getJSONObject(i);
-
-                // Verify this variant belongs to the current product
                 if (variant.has("prod_id") && variant.getString("prod_id").equals(productId)) {
                     variantsList.add(variant);
                 }
@@ -813,7 +953,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
             Log.d("DEBUG_LOAD", "Loaded " + variantsList.size() + " variants");
             variantAdapter.notifyDataSetChanged();
-            updateProductStats(); // Make sure this is called
+            updateProductStats();
 
         } catch (JSONException e) {
             Log.e("VARIANT_ERROR", "Error loading variants: " + e.getMessage());
@@ -830,8 +970,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 String productId = variant.getString("prod_id");
                 String statusValue = isChecked ? "1" : "0";
                 variant.put("status", statusValue);
-
-                // Call API for each variant
                 updateVariantStatusInAPI(productId, variantId, statusValue);
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -840,16 +978,9 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         variantAdapter.notifyDataSetChanged();
         updateProductStats();
 
-        // Reset the flag after a short delay to ensure all updates are processed
         new android.os.Handler().postDelayed(() -> {
             isUpdatingProductStatus = false;
         }, 500);
-    }
-
-    private void saveAllChanges() {
-        // Implement bulk save functionality here
-        Toast.makeText(this, "All changes saved successfully!", Toast.LENGTH_SHORT).show();
-        hasChanges = false;
     }
 
     // Implement VariantAdapter.OnVariantChangeListener methods
@@ -864,10 +995,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             updateVariantStatusInAPI(productId, variantId, statusValue);
 
             hasChanges = true;
-
-            // Update product status based on variant status changes
             updateProductStatusBasedOnVariants();
-
             updateProductStats();
 
         } catch (Exception e) {
@@ -939,10 +1067,9 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         }
     }
 
-    // NEW METHOD: Update product status based on variant statuses
     private void updateProductStatusBasedOnVariants() {
         if (isUpdatingProductStatus) {
-            return; // Don't update if we're in the middle of a product status update
+            return;
         }
 
         boolean allVariantsInactive = true;
@@ -959,17 +1086,12 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             }
         }
 
-        // If all variants are inactive, turn off product status
-        // If at least one variant is active, turn on product status
         boolean shouldProductBeActive = !allVariantsInactive;
 
-        // Only update if there's a change needed
         if (switchProductStatus.isChecked() != shouldProductBeActive) {
             isUpdatingProductStatus = true;
             switchProductStatus.setChecked(shouldProductBeActive);
             updateStatusBadge(shouldProductBeActive);
-
-            // Also update the product status in API
             updateProductStatusInAPI(productId, shouldProductBeActive);
 
             new android.os.Handler().postDelayed(() -> {
@@ -978,7 +1100,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         }
     }
 
-    // Helper methods for discount type and status conversion
     private String getDiscountTypeValue(String displayValue) {
         switch (displayValue) {
             case "No Discount": return "0";
@@ -1182,6 +1303,8 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         });
     }
 
+
+
     // API Methods for status updates
     private void updateVariantStatusInAPI(String productId, String variantId, String status) {
         String url = Attributes.Main_Url + "shop/" + productId + "/product_variant/hide/" + variantId;
@@ -1230,8 +1353,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 runOnUiThread(() -> {
                     Log.e("API_ERROR", "Failed to update product status: " + e.getMessage());
                     Toast.makeText(ProductViewActivity.this, "Network error", Toast.LENGTH_SHORT).show();
-
-                    // Revert the switch state if API call fails
                     switchProductStatus.setChecked(!isChecked);
                 });
             }
@@ -1253,8 +1374,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                     } else {
                         Log.e("API_ERROR", "Failed to update product status: " + response.code());
                         Toast.makeText(ProductViewActivity.this, "Failed to update product status", Toast.LENGTH_SHORT).show();
-
-                        // Revert the switch state if API call fails
                         switchProductStatus.setChecked(!isChecked);
                     }
                 });
@@ -1267,7 +1386,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         return prefs.getString("shopId", "");
     }
 
-    // Method to get all updated variants
     public List<JSONObject> getUpdatedVariants() {
         return variantsList;
     }

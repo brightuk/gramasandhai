@@ -48,7 +48,26 @@
     <color name="divider_color">#E0E0E0</color>
 
     <color name="warning_color">#E53E3E</color>
+    <!-- Gradient Colors -->
+    <color name="completed_orders_gradient">#FF6B6B</color>
+    <color name="revenue_gradient">#4ECDC4</color>
+    <color name="cod_revenue_gradient">#45B7D1</color>
+    <color name="online_revenue_gradient">#96CEB4</color>
 
+    <!-- Status Colors -->
+    <color name="status_completed_bg">#E8F5E8</color>
+    <color name="status_completed_text">#2E7D32</color>
+    <color name="status_processing_bg">#E3F2FD</color>
+    <color name="status_processing_text">#1565C0</color>
+    <color name="status_pending_bg">#FFF3E0</color>
+    <color name="status_pending_text">#EF6C00</color>
+    <color name="status_cancelled_bg">#FFEBEE</color>
+    <color name="status_cancelled_text">#C62828</color>
+    <color name="status_unknown_bg">#F5F5F5</color>
+    <color name="status_unknown_text">#757575</color>
+
+    <!-- Shimmer -->
+    <color name="shimmer_background">#F0F0F0</color>
 
 
     <color name="gray">#9E9E9E</color>
@@ -228,6 +247,26 @@
 
 
 
+    <!-- Shimmer and Background Colors -->
+
+    <color name="background_gray">#F8FAFD</color>
+    <color name="card_background">#FFFFFF</color>
+
+
+
+    <!-- Border Colors -->
+
+
+    <!-- Semantic Colors -->
+
+    <color name="info_blue">#2196F3</color>
+
+    <!-- Chart Colors -->
+    <color name="chart_blue">#667eea</color>
+    <color name="chart_purple">#764ba2</color>
+    <color name="chart_green">#4ECDC4</color>
+    <color name="chart_red">#FF6B6B</color>
+    <color name="chart_orange">#FFA500</color>
 
 
 

@@ -129,35 +129,35 @@
 
         </LinearLayout>
 
-        <!-- Action Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="12dp"
-            android:weightSum="2">
+<!--        &lt;!&ndash; Action Buttons &ndash;&gt;-->
+<!--        <LinearLayout-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal"-->
+<!--            android:layout_marginTop="12dp"-->
+<!--            android:weightSum="2">-->
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnViewDetails"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="View Details"
-                android:textSize="12sp"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
+<!--            <com.google.android.material.button.MaterialButton-->
+<!--                android:id="@+id/btnViewDetails"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="36dp"-->
+<!--                android:layout_weight="1"-->
+<!--                android:layout_marginEnd="4dp"-->
+<!--                android:text="View Details"-->
+<!--                android:textSize="12sp"-->
+<!--                style="@style/Widget.Material3.Button.OutlinedButton" />-->
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnTrack"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="Track"
-                android:textSize="12sp"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
+<!--            <com.google.android.material.button.MaterialButton-->
+<!--                android:id="@+id/btnTrack"-->
+<!--                android:layout_width="0dp"-->
+<!--                android:layout_height="36dp"-->
+<!--                android:layout_weight="1"-->
+<!--                android:layout_marginStart="4dp"-->
+<!--                android:text="Track"-->
+<!--                android:textSize="12sp"-->
+<!--                style="@style/Widget.Material3.Button.OutlinedButton" />-->
 
-        </LinearLayout>
+<!--        </LinearLayout>-->
 
     </LinearLayout>
 

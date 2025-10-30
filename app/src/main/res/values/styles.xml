@@ -112,5 +112,41 @@
     </style>
 
 
+<!--    ggggggggggggggg-->
+
+
+
+    <!-- Custom Material Theme -->
+    <style name="CustomMaterialDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog.Centered">
+        <item name="android:background">@drawable/dialog_background</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="CustomDatePickerDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog.Centered">
+        <item name="android:background">@drawable/dialog_background</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="RadioButtonMaterial" parent="Widget.Material3.CompoundButton.RadioButton">
+        <item name="android:padding">16dp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
+
+    <!-- Enhanced Card Style -->
+    <style name="EnhancedCardView" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="cardBackgroundColor">@android:color/white</item>
+    </style>
+
+    <!-- Chip Style -->
+    <style name="Widget.Material3.Chip.Filter" parent="Widget.Material3.Chip.Assist">
+        <item name="chipBackgroundColor">@color/status_processing_bg</item>
+        <item name="chipStrokeColor">@color/border_light</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">16dp</item>
+    </style>
+
+
 
 </resources>

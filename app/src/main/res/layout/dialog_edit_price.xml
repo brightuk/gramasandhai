@@ -32,7 +32,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_price_tag"
+                    android:src="@drawable/ic_edit"
                     android:layout_gravity="center"
                     app:tint="#3182CE" />
 
@@ -49,7 +49,7 @@
                     android:id="@+id/tvDialogTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Edit Product Price"
+                    android:text="Edit Product"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="#1A202C" />
@@ -58,7 +58,7 @@
                     android:id="@+id/tvDialogSubtitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Update the price for this product"
+                    android:text="Update product details"
                     android:textSize="14sp"
                     android:textColor="#718096"
                     android:layout_marginTop="4dp" />
@@ -76,6 +76,97 @@
         android:orientation="vertical"
         android:padding="24dp">
 
+        <!-- Product Image Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="24dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                android:layout_gravity="center">
+
+                <ImageView
+                    android:id="@+id/ivProductImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:background="#F7FAFC"
+                    android:src="@drawable/ic_product_placeholder" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/image_overlay" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
+                        android:id="@+id/fabEditImage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/ic_camera"
+                        app:fabSize="mini"
+                        app:backgroundTint="#3182CE"
+                        app:tint="#FFFFFF" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Change Image"
+                        android:textSize="12sp"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp"
+                        android:background="#80000000"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Product Name Input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/textInputLayoutName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Product Name"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="#3182CE"
+            app:startIconDrawable="@drawable/ic_tag"
+            app:startIconTint="#3182CE"
+            app:hintTextColor="#718096"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etProductName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapWords"
+                android:maxLines="1"
+                android:textSize="16sp"
+                android:textColor="#1A202C"
+                android:padding="16dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Current Price Display -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -84,7 +175,7 @@
             android:gravity="center_vertical"
             android:background="@drawable/current_price_background"
             android:padding="16dp"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="16dp">
 
             <ImageView
                 android:layout_width="20dp"
@@ -128,7 +219,7 @@
             app:endIconDrawable="@drawable/ic_rupee"
             app:endIconTint="#3182CE"
             app:hintTextColor="#718096"
-            app:startIconDrawable="@drawable/ic_edit"
+            app:startIconDrawable="@drawable/ic_price_tag"
             app:startIconTint="#3182CE">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -142,62 +233,6 @@
                 android:padding="16dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
-
-<!--        &lt;!&ndash; Price Suggestions &ndash;&gt;-->
-<!--        <TextView-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:text="Quick Suggestions"-->
-<!--            android:textSize="12sp"-->
-<!--            android:textColor="#718096"-->
-<!--            android:textStyle="bold"-->
-<!--            android:layout_marginTop="16dp"-->
-<!--            android:layout_marginBottom="8dp" />-->
-
-<!--        <LinearLayout-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:orientation="horizontal"-->
-<!--            android:gravity="center">-->
-
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnSuggestion1"-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_weight="1"-->
-<!--                android:text="+10"-->
-<!--                android:textSize="12sp"-->
-<!--                android:layout_marginEnd="4dp"-->
-<!--                style="@style/Widget.Material3.Button.OutlinedButton"-->
-<!--                app:cornerRadius="8dp"-->
-<!--                app:strokeColor="#E2E8F0" />-->
-
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnSuggestion2"-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_weight="1"-->
-<!--                android:text="+20"-->
-<!--                android:textSize="12sp"-->
-<!--                android:layout_marginStart="4dp"-->
-<!--                android:layout_marginEnd="4dp"-->
-<!--                style="@style/Widget.Material3.Button.OutlinedButton"-->
-<!--                app:cornerRadius="8dp"-->
-<!--                app:strokeColor="#E2E8F0" />-->
-
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnSuggestion3"-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_weight="1"-->
-<!--                android:text="+50"-->
-<!--                android:textSize="12sp"-->
-<!--                android:layout_marginStart="4dp"-->
-<!--                style="@style/Widget.Material3.Button.OutlinedButton"-->
-<!--                app:cornerRadius="8dp"-->
-<!--                app:strokeColor="#E2E8F0" />-->
-
-<!--        </LinearLayout>-->
 
         <!-- Warning Message -->
         <LinearLayout
@@ -242,7 +277,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCancel"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_weight="1"
             android:text="Cancel"
@@ -255,10 +290,10 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnUpdate"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:text="Update Price"
+            android:text="Update"
             android:textSize="14sp"
             android:layout_marginStart="8dp"
             app:icon="@drawable/ic_check"

@@ -55,7 +55,7 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
 
         // Hide count for categories as it's not in the API response
         holder.tvItemCount.setVisibility(View.VISIBLE);
-        holder.tvItemCount.setText(category.getSubcategoriesCount()+" subcatagories");
+        holder.tvItemCount.setText(category.getSubcategoriesCount()+" subcatagory");
 
         // Set status
         if ("1".equals(category.getStatus())) {

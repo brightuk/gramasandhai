@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -8,12 +9,17 @@
     android:fitsSystemWindows="true"
     tools:context=".Activity.ProductManageActivity">
 
+    <!-- ===================== APP BAR ===================== -->
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        android:elevation="0dp">
+        android:background="@color/white"
+        android:elevation="4dp"
+        android:fitsSystemWindows="true"
+        app:liftOnScroll="true">
 
+        <!-- Toolbar -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -22,11 +28,92 @@
             app:title="Product Management"
             app:titleTextColor="#1A202C"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:menu="@menu/product_management_menu"
-            app:elevation="4dp" />
+            app:menu="@menu/product_management_menu" />
+
+        <!-- Sticky Search Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSearchFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Shimmer for Search -->
+                <com.facebook.shimmer.ShimmerFrameLayout
+                    android:id="@+id/shimmerSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:shimmer_auto_start="false">
+
+                    <!-- Search Placeholder -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_shimmer_placeholder"
+                        android:minHeight="56dp">
+
+                        <View
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="@drawable/bg_shimmer_placeholder"
+                            android:layout_marginEnd="12dp" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="20dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_shimmer_placeholder" />
+
+                    </LinearLayout>
+
+                </com.facebook.shimmer.ShimmerFrameLayout>
+
+                <!-- Actual Search Content -->
+                <LinearLayout
+                    android:id="@+id/contentSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp"
+                        app:boxStrokeColor="@color/primary_color"
+                        app:hintTextColor="@color/primary_color">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etSearch"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Search..."
+                            android:drawableStart="@drawable/ic_search"
+                            android:drawablePadding="8dp"
+                            android:paddingStart="12dp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- ===================== SCROLLABLE CONTENT ===================== -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -55,6 +142,7 @@
                     android:orientation="horizontal"
                     android:padding="12dp"
                     android:gravity="center_vertical">
+
                     <ImageButton
                         android:id="@+id/btnBack"
                         android:layout_width="40dp"
@@ -67,19 +155,16 @@
                         android:id="@+id/tvBreadcrumb"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:text="Categories"
                         android:textColor="@color/primary_color"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
-
-
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Stats Cards with Complete Lazy Loading -->
+            <!-- Stats Cards -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -94,7 +179,7 @@
                     android:orientation="horizontal"
                     android:padding="16dp">
 
-                    <!-- Total Items with Complete Lazy Loading -->
+                    <!-- Total Items -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -103,7 +188,6 @@
                         android:gravity="center"
                         android:padding="8dp">
 
-                        <!-- Shimmer Layout for Loading State -->
                         <com.facebook.shimmer.ShimmerFrameLayout
                             android:id="@+id/shimmerTotal"
                             android:layout_width="wrap_content"
@@ -116,14 +200,12 @@
                                 android:orientation="vertical"
                                 android:gravity="center">
 
-                                <!-- Number Placeholder -->
                                 <View
                                     android:layout_width="60dp"
                                     android:layout_height="28sp"
                                     android:background="@drawable/bg_shimmer_placeholder"
                                     android:layout_marginBottom="4dp" />
 
-                                <!-- Label Placeholder -->
                                 <View
                                     android:layout_width="80dp"
                                     android:layout_height="14dp"
@@ -133,7 +215,6 @@
 
                         </com.facebook.shimmer.ShimmerFrameLayout>
 
-                        <!-- Actual Content (Hidden during loading) -->
                         <LinearLayout
                             android:id="@+id/contentTotal"
                             android:layout_width="wrap_content"
@@ -170,7 +251,7 @@
                         android:layout_marginEnd="8dp"
                         android:background="@color/light_gray" />
 
-                    <!-- Active Items with Complete Lazy Loading -->
+                    <!-- Active Items -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -179,7 +260,6 @@
                         android:gravity="center"
                         android:padding="8dp">
 
-                        <!-- Shimmer Layout for Loading State -->
                         <com.facebook.shimmer.ShimmerFrameLayout
                             android:id="@+id/shimmerActive"
                             android:layout_width="wrap_content"
@@ -192,14 +272,12 @@
                                 android:orientation="vertical"
                                 android:gravity="center">
 
-                                <!-- Number Placeholder -->
                                 <View
                                     android:layout_width="60dp"
                                     android:layout_height="28sp"
                                     android:background="@drawable/bg_shimmer_placeholder"
                                     android:layout_marginBottom="4dp" />
 
-                                <!-- Label Placeholder -->
                                 <View
                                     android:layout_width="50dp"
                                     android:layout_height="14dp"
@@ -209,7 +287,6 @@
 
                         </com.facebook.shimmer.ShimmerFrameLayout>
 
-                        <!-- Actual Content (Hidden during loading) -->
                         <LinearLayout
                             android:id="@+id/contentActive"
                             android:layout_width="wrap_content"
@@ -242,89 +319,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Search and Filter Section with Lazy Loading -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardSearchFilter"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <!-- Shimmer for Search -->
-                    <com.facebook.shimmer.ShimmerFrameLayout
-                        android:id="@+id/shimmerSearch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:shimmer_auto_start="false">
-
-                        <!-- Search Placeholder -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:padding="12dp"
-                            android:background="@drawable/bg_shimmer_placeholder"
-                            android:minHeight="56dp">
-
-                            <View
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:background="@drawable/bg_shimmer_placeholder"
-                                android:layout_marginEnd="12dp" />
-
-                            <View
-                                android:layout_width="0dp"
-                                android:layout_height="20dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_shimmer_placeholder" />
-
-                        </LinearLayout>
-
-                    </com.facebook.shimmer.ShimmerFrameLayout>
-
-                    <!-- Actual Search Content -->
-                    <LinearLayout
-                        android:id="@+id/contentSearch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone">
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:boxCornerRadiusBottomEnd="8dp"
-                            app:boxCornerRadiusBottomStart="8dp"
-                            app:boxCornerRadiusTopEnd="8dp"
-                            app:boxCornerRadiusTopStart="8dp"
-                            app:boxStrokeColor="@color/primary_color"
-                            app:hintTextColor="@color/primary_color">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etSearch"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:hint="Search..."
-                                android:drawableStart="@drawable/ic_search"
-                                android:drawablePadding="8dp"
-                                android:paddingStart="12dp" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Categories/Subcategories/Products RecyclerView with Lazy Loading -->
+            <!-- Categories/Subcategories/Products RecyclerView -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -336,7 +331,6 @@
                     android:layout_height="wrap_content"
                     android:minHeight="400dp">
 
-                    <!-- Actual Content -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvItems"
                         android:layout_width="match_parent"
@@ -345,7 +339,6 @@
                         android:visibility="gone"
                         tools:listitem="@layout/item_category" />
 
-                    <!-- Shimmer Layout for Loading -->
                     <LinearLayout
                         android:id="@+id/shimmerLayout"
                         android:layout_width="match_parent"
@@ -354,35 +347,14 @@
                         android:padding="8dp"
                         android:visibility="gone">
 
-                        <!-- Multiple shimmer items -->
-                        <include layout="@layout/shimmer_item_category"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp" />
-
-                        <include layout="@layout/shimmer_item_category"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp" />
-
-                        <include layout="@layout/shimmer_item_category"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp" />
-
-                        <include layout="@layout/shimmer_item_category"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp" />
-
-                        <include layout="@layout/shimmer_item_category"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp" />
+                        <include layout="@layout/shimmer_item_category" />
+                        <include layout="@layout/shimmer_item_category" />
+                        <include layout="@layout/shimmer_item_category" />
+                        <include layout="@layout/shimmer_item_category" />
+                        <include layout="@layout/shimmer_item_category" />
 
                     </LinearLayout>
 
-                    <!-- Empty State -->
                     <LinearLayout
                         android:id="@+id/emptyLayout"
                         android:layout_width="match_parent"
@@ -424,7 +396,7 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!-- FAB -->
+    <!-- ===================== FLOATING BUTTON ===================== -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddProduct"
         android:layout_width="wrap_content"

@@ -139,15 +139,15 @@
                                 android:textStyle="bold"
                                 android:textColor="#2D3748" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Optional"
-                                android:textSize="12sp"
-                                android:textColor="#718096"
-                                android:background="@drawable/optional_badge"
-                                android:paddingHorizontal="8dp"
-                                android:paddingVertical="4dp" />
+<!--                            <TextView-->
+<!--                                android:layout_width="wrap_content"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:text="Optional"-->
+<!--                                android:textSize="12sp"-->
+<!--                                android:textColor="#718096"-->
+<!--                                android:background="@drawable/optional_badge"-->
+<!--                                android:paddingHorizontal="8dp"-->
+<!--                                android:paddingVertical="4dp" />-->
 
                         </LinearLayout>
 
@@ -344,7 +344,7 @@
                                 android:layout_marginEnd="12dp"
                                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                                 app:startIconDrawable="@drawable/ic_rupee1"
-                                app:prefixText="₹">
+                                >
 
                                 <com.google.android.material.textfield.TextInputEditText
                                     android:id="@+id/etVariantPrice"
@@ -432,7 +432,7 @@
                                         android:layout_weight="1"
                                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                                         app:startIconDrawable="@drawable/ic_rupee"
-                                        app:suffixText="OFF">
+                                        >
 
                                         <com.google.android.material.textfield.TextInputEditText
                                             android:id="@+id/etVariantDiscountPrice"

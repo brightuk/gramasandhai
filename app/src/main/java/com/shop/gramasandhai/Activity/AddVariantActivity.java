@@ -1120,21 +1120,41 @@ public class AddVariantActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseBody = response.body() != null ? response.body().string() : "";
-                    Log.d("VARIANT_RESPONSE", responseBody);
+                    Log.d("VARIANT_RESPONSE", "Response Code: " + response.code() + ", Body: " + responseBody);
 
                     runOnUiThread(() -> {
                         hideProgress();
                         try {
                             JSONObject jsonResponse = new JSONObject(responseBody);
-                            if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
-                                showSuccess("Variant added successfully!");
+
+                            // More flexible success checking
+                            String status = jsonResponse.optString("status", "").toLowerCase();
+                            boolean isSuccess = response.isSuccessful() &&
+                                    (status.equals("success") ||
+                                            status.equals("true") ||
+                                            jsonResponse.optBoolean("success", false));
+
+                            if (isSuccess) {
+
+
+                                Intent intent = new Intent(AddVariantActivity.this, ProductViewActivity.class);
+                                // Add flags to clear the back stack if needed
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                intent.putExtra("prod_id",productId);
+                                startActivity(intent);
+                                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                                finish();
                             } else {
                                 String errorMessage = jsonResponse.optString("message", "Failed to add variant");
                                 Toast.makeText(AddVariantActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+                                Log.e("VARIANT_ERROR", "Server error: " + errorMessage);
                             }
                         } catch (JSONException e) {
-                            Log.e("JSON_ERROR", "Error parsing response: " + e.getMessage());
+                            Log.e("JSON_ERROR", "Error parsing response: " + e.getMessage() + ", Response: " + responseBody);
                             Toast.makeText(AddVariantActivity.this, "Error parsing server response", Toast.LENGTH_LONG).show();
+                        } catch (Exception e) {
+                            Log.e("VARIANT_ERROR", "Unexpected error: " + e.getMessage());
+                            Toast.makeText(AddVariantActivity.this, "Unexpected error occurred", Toast.LENGTH_LONG).show();
                         }
                     });
                 }
@@ -1148,7 +1168,7 @@ public class AddVariantActivity extends AppCompatActivity {
     }
 
     // Improved method to get image file from URI
-    // Improved method to get image file from URI
+
     private File getImageFileFromUri(Uri uri) {
         if (uri == null) return null;
 

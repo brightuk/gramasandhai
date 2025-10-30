@@ -82,8 +82,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             tvItems = itemView.findViewById(R.id.tvItems); // Make sure this exists in your XML
             tvDeliveryAddress = itemView.findViewById(R.id.tvDeliveryAddress);
             chipStatus = itemView.findViewById(R.id.chipStatus);
-            btnViewDetails = itemView.findViewById(R.id.btnViewDetails);
-            btnTrack = itemView.findViewById(R.id.btnTrack);
+//            btnViewDetails = itemView.findViewById(R.id.btnViewDetails);
+//            btnTrack = itemView.findViewById(R.id.btnTrack);
 
             // Debug: Check if views are found
             Log.d("OrderAdapter", "tvOrderId: " + (tvOrderId != null));
@@ -125,18 +125,18 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             setOrderStatus(order.getOrderStatus());
 
             // Set click listeners
-            if (btnViewDetails != null) {
-                btnViewDetails.setOnClickListener(v -> {
-                    Log.d("OrderAdapter", "View details clicked for: " + order.getOrderId());
-                    listener.onOrderClick(order);
-                });
-            }
-            if (btnTrack != null) {
-                btnTrack.setOnClickListener(v -> {
-                    Log.d("OrderAdapter", "Track clicked for: " + order.getOrderId());
-                    listener.onTrackOrder(order);
-                });
-            }
+//            if (btnViewDetails != null) {
+//                btnViewDetails.setOnClickListener(v -> {
+//                    Log.d("OrderAdapter", "View details clicked for: " + order.getOrderId());
+//                    listener.onOrderClick(order);
+//                });
+//            }
+//            if (btnTrack != null) {
+//                btnTrack.setOnClickListener(v -> {
+//                    Log.d("OrderAdapter", "Track clicked for: " + order.getOrderId());
+//                    listener.onTrackOrder(order);
+//                });
+//            }
 
             itemView.setOnClickListener(v -> {
                 Log.d("OrderAdapter", "Item clicked: " + order.getOrderId());
