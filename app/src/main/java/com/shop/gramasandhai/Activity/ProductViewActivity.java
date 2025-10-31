@@ -1178,7 +1178,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             } else {
                 // No discount - show only original price
                 tvProductPrice.setText("₹" + String.format("%.2f", originalPrice));
-                layoutProductDiscount.setVisibility(View.GONE);
+
                 Log.d("DISCOUNT_DEBUG", "No discount applied - Price: " + originalPrice);
             }
 

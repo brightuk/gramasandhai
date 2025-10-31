@@ -151,11 +151,11 @@
                                         android:orientation="horizontal"
                                         android:gravity="center_vertical">
 
-                                        <ImageView
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="20dp"
-                                            android:src="@drawable/ic_rupee"
-                                            android:layout_marginEnd="4dp"/>
+<!--                                        <ImageView-->
+<!--                                            android:layout_width="wrap_content"-->
+<!--                                            android:layout_height="20dp"-->
+<!--                                            android:src="@drawable/ic_rupee"-->
+<!--                                            android:layout_marginEnd="4dp"/>-->
 
                                         <TextView
                                             android:id="@+id/tvProductPrice"
@@ -206,7 +206,7 @@
                                             android:id="@+id/tvProductDiscount"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text=""
+                                            android:text="No Discount"
                                             android:textSize="13sp"
                                             android:textColor="#38A169"
                                             android:textStyle="bold" />
