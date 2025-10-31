@@ -20,4 +20,11 @@
         android:title="Sort"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/action_analytics"
+        android:icon="@drawable/ic_analytics"
+        android:title="Analytics"
+        app:showAsAction="ifRoom" />
+
 </menu>
+

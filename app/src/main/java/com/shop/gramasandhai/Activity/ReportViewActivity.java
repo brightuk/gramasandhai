@@ -23,6 +23,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -62,7 +63,6 @@ public class ReportViewActivity extends AppCompatActivity {
     private TextView tvCODRevenue, tvOnlineRevenue;
     private OrderAdapter orderAdapter;
     private List<Orders> orderList = new ArrayList<>();
-    private List<Orders> filteredOrderList = new ArrayList<>();
 
     // UI Components
     private ProgressBar progressBar;
@@ -71,7 +71,7 @@ public class ReportViewActivity extends AppCompatActivity {
 
     // Shimmer and Content Views
     private ShimmerFrameLayout shimmerLayout;
-    private View contentScrollView;
+    private NestedScrollView contentScrollView;
 
     // Summary Cards
     private TextView tvCompletedOrders, tvTotalRevenue, tvOrderCount;
@@ -100,7 +100,6 @@ public class ReportViewActivity extends AppCompatActivity {
 
     // Filter states
     private String currentStatusFilter = "COM";
-    private String currentDateFilter = "";
     private String selectedStartDate = "";
     private String selectedEndDate = "";
 
@@ -121,7 +120,7 @@ public class ReportViewActivity extends AppCompatActivity {
 
         // Show shimmer and load data with slight delay
         showShimmerLoading();
-        handler.postDelayed(this::loadReport, 1000); // 1 second delay for better UX
+        handler.postDelayed(this::loadReport, 1000);
     }
 
     private void initializeViews() {
@@ -284,7 +283,6 @@ public class ReportViewActivity extends AppCompatActivity {
 
         // Chip close listeners
         chipDateFilter.setOnCloseIconClickListener(v -> {
-            currentDateFilter = "";
             selectedStartDate = "";
             selectedEndDate = "";
             chipDateFilter.setVisibility(View.GONE);
@@ -326,16 +324,17 @@ public class ReportViewActivity extends AppCompatActivity {
     }
 
     private void applyFilters() {
-        Log.d(TAG, "Applying filters - Status: " + currentStatusFilter + ", Date: " + currentDateFilter);
+        Log.d(TAG, "Applying filters - Status: " + currentStatusFilter +
+                ", Date Range: " + selectedStartDate + " to " + selectedEndDate);
         Log.d(TAG, "Total orders before filter: " + orderList.size());
 
         List<Orders> tempFilteredList = new ArrayList<>();
 
         for (Orders order : orderList) {
             boolean statusMatch = order.getOrderStatus() != null &&
-                    order.getOrderStatus().equalsIgnoreCase("COM");
+                    order.getOrderStatus().equalsIgnoreCase(currentStatusFilter);
 
-            boolean dateMatch = currentDateFilter.isEmpty() ||
+            boolean dateMatch = selectedStartDate.isEmpty() || selectedEndDate.isEmpty() ||
                     isDateInRange(order.getCreatedAt(), selectedStartDate, selectedEndDate);
 
             if (statusMatch && dateMatch) {
@@ -343,14 +342,14 @@ public class ReportViewActivity extends AppCompatActivity {
             }
         }
 
-        Log.d(TAG, "Completed orders after filter: " + tempFilteredList.size());
+        Log.d(TAG, "Filtered orders: " + tempFilteredList.size());
 
         runOnUiThread(() -> {
             orderAdapter.updateData(tempFilteredList);
             updateOrderCount(tempFilteredList.size());
             updateSummaryCards(tempFilteredList);
             checkEmptyState(tempFilteredList.size());
-            Log.d(TAG, "Adapter notified with " + tempFilteredList.size() + " completed orders");
+            Log.d(TAG, "Adapter notified with " + tempFilteredList.size() + " orders");
         });
     }
 
@@ -693,7 +692,7 @@ public class ReportViewActivity extends AppCompatActivity {
                         if (response.isSuccessful() && "success".equals(jsonResponse.optString("status"))) {
                             parseOrdersData(jsonResponse);
                             applyFilters();
-                            Log.d(TAG, "Completed orders loaded and filtered: " + filteredOrderList.size());
+                            Log.d(TAG, "Orders loaded and filtered: " + orderList.size());
                         } else {
                             String errorMsg = jsonResponse.optString("message", "Unknown error");
                             Toast.makeText(ReportViewActivity.this,
@@ -813,7 +812,6 @@ public class ReportViewActivity extends AppCompatActivity {
 
         selectedStartDate = startDate;
         selectedEndDate = endDate;
-        currentDateFilter = "CUSTOM";
 
         chipDateFilter.setText(getFilterDisplayText(filterIndex));
         chipDateFilter.setVisibility(View.VISIBLE);
@@ -855,7 +853,6 @@ public class ReportViewActivity extends AppCompatActivity {
     }
 
     private void clearDateFilter() {
-        currentDateFilter = "";
         selectedStartDate = "";
         selectedEndDate = "";
         chipDateFilter.setVisibility(View.GONE);
@@ -874,7 +871,6 @@ public class ReportViewActivity extends AppCompatActivity {
 
         selectedStartDate = startDate;
         selectedEndDate = endDate;
-        currentDateFilter = "CUSTOM";
 
         chipDateFilter.setText("Custom: " + startDate + " to " + endDate);
         chipDateFilter.setVisibility(View.VISIBLE);

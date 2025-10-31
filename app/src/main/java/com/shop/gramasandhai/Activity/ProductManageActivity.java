@@ -11,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,7 +41,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -58,6 +61,7 @@ public class ProductManageActivity extends AppCompatActivity {
     private FloatingActionButton fabAddProduct;
     private LinearLayout shimmerLayout, emptyLayout;
     private ShimmerFrameLayout shimmerTotal, shimmerActive, shimmerSearch;
+    private ProgressBar progressBarPagination;
 
     // ADDED: Content layout references for lazy loading
     private LinearLayout contentTotal, contentActive, contentSearch;
@@ -67,10 +71,10 @@ public class ProductManageActivity extends AppCompatActivity {
     private SubcategoryAdapter subcategoryAdapter;
     private ProductAdapter productAdapter;
 
-    // Data
+    // Data Caches - FIXED: Prevent reloading
     private List<Category> categoryList = new ArrayList<>();
     private List<Subcategory> subcategoryList = new ArrayList<>();
-    private List<Product> productList = new ArrayList<>();
+    private Map<String, List<Product>> productCache = new HashMap<>(); // Cache products by subcategory ID
 
     // Filtered data for search
     private List<Category> filteredCategoryList = new ArrayList<>();
@@ -83,6 +87,16 @@ public class ProductManageActivity extends AppCompatActivity {
     private String selectedCategoryName = "";
     private String selectedSubcategoryId = "";
     private String selectedSubcategoryName = "";
+
+    // ADDED: Pagination variables
+    private int currentPage = 1;
+    private final int PAGE_SIZE = 10;
+    private boolean isLoading = false;
+    private boolean hasMorePages = true;
+
+    // ADDED: Data loaded flags
+    private boolean categoriesLoaded = false;
+    private boolean subcategoriesLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +127,7 @@ public class ProductManageActivity extends AppCompatActivity {
         etSearch = findViewById(R.id.etSearch);
         btnBack = findViewById(R.id.btnBack);
         fabAddProduct = findViewById(R.id.fabAddProduct);
+        progressBarPagination = findViewById(R.id.progressBarPagination);
 
         // Shimmer views
         shimmerLayout = findViewById(R.id.shimmerLayout);
@@ -121,7 +136,7 @@ public class ProductManageActivity extends AppCompatActivity {
         shimmerActive = findViewById(R.id.shimmerActive);
         shimmerSearch = findViewById(R.id.shimmerSearch);
 
-        // ADDED: Initialize content layout references
+        // Initialize content layout references
         contentTotal = findViewById(R.id.contentTotal);
         contentActive = findViewById(R.id.contentActive);
         contentSearch = findViewById(R.id.contentSearch);
@@ -142,8 +157,28 @@ public class ProductManageActivity extends AppCompatActivity {
         subcategoryAdapter = new SubcategoryAdapter(this, new ArrayList<>());
         productAdapter = new ProductAdapter(this, new ArrayList<>());
 
-        rvItems.setLayoutManager(new LinearLayoutManager(this));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        rvItems.setLayoutManager(layoutManager);
         rvItems.setAdapter(categoryAdapter);
+
+        // ADDED: Pagination scroll listener for products
+        rvItems.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                if (currentLevel.equals("products") && !isLoading && hasMorePages) {
+                    int visibleItemCount = layoutManager.getChildCount();
+                    int totalItemCount = layoutManager.getItemCount();
+                    int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                            && firstVisibleItemPosition >= 0) {
+                        loadMoreProducts();
+                    }
+                }
+            }
+        });
 
         // Set click listeners
         categoryAdapter.setOnItemClickListener((category, position) -> {
@@ -196,6 +231,12 @@ public class ProductManageActivity extends AppCompatActivity {
     }
 
     private void loadCategories() {
+        // FIXED: Check if categories are already loaded
+        if (categoriesLoaded && !categoryList.isEmpty()) {
+            showCategories();
+            return;
+        }
+
         currentLevel = "categories";
         updateBreadcrumb("Categories");
         Log.d("API_DEBUG", "Loading categories for Shop ID: " + shopId());
@@ -230,6 +271,7 @@ public class ProductManageActivity extends AppCompatActivity {
 
                         if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
                             parseCategoriesData(responseObject);
+                            categoriesLoaded = true; // MARK: Categories loaded
 
                             // Show categories immediately after parsing
                             showCategories();
@@ -263,6 +305,14 @@ public class ProductManageActivity extends AppCompatActivity {
     private void loadSubcategories(String categoryId) {
         currentLevel = "subcategories";
         updateBreadcrumb(selectedCategoryName);
+
+        // FIXED: Check if subcategories are already loaded and just filter them
+        if (subcategoriesLoaded && !subcategoryList.isEmpty()) {
+            filterSubcategoriesForCategory(categoryId);
+            showSubcategories();
+            return;
+        }
+
         showFullLoadingState(true);
 
         Log.d("API_DEBUG", "Loading subcategories for Category ID: " + categoryId + ", Shop ID: " + shopId());
@@ -297,6 +347,7 @@ public class ProductManageActivity extends AppCompatActivity {
 
                         if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
                             parseSubcategoriesData(responseObject, categoryId);
+                            subcategoriesLoaded = true; // MARK: Subcategories loaded
                             showSubcategories();
                         } else {
                             String errorMsg = responseObject.optString("message", "Failed to load subcategories");
@@ -325,13 +376,35 @@ public class ProductManageActivity extends AppCompatActivity {
     private void loadProducts(String subcategoryId) {
         currentLevel = "products";
         updateBreadcrumb(selectedSubcategoryName);
-        showFullLoadingState(true);
 
-        Log.d("API_DEBUG", "Loading products for Subcategory ID: " + subcategoryId + ", Shop ID: " + shopId());
+        // FIXED: Reset pagination when loading new subcategory
+        resetPagination();
+
+        // Check if products are already cached for this subcategory
+        if (productCache.containsKey(subcategoryId) && !productCache.get(subcategoryId).isEmpty()) {
+            filteredProductList = new ArrayList<>(productCache.get(subcategoryId));
+            showProducts();
+            return;
+        }
+
+        showFullLoadingState(true);
+        loadProductsPage(subcategoryId, 1);
+    }
+
+    // ADDED: New method for paginated product loading
+    private void loadProductsPage(String subcategoryId, int page) {
+        if (isLoading) return;
+
+        isLoading = true;
+        showPaginationLoading(true);
+
+        Log.d("API_DEBUG", "Loading products page " + page + " for Subcategory ID: " + subcategoryId + ", Shop ID: " + shopId());
 
         OkHttpClient client = new OkHttpClient();
+        String url = Attributes.Main_Url + "shop/" + shopId() + "/products?page=" + page + "&limit=" + PAGE_SIZE;
+
         Request request = new Request.Builder()
-                .url(Attributes.Main_Url + "shop/" + shopId() + "/products")
+                .url(url)
                 .get()
                 .addHeader("X-Api", "SEC195C79FC4CCB09B48AA8")
                 .build();
@@ -340,10 +413,14 @@ public class ProductManageActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 runOnUiThread(() -> {
-                    showFullLoadingState(false);
-                    Toast.makeText(ProductManageActivity.this,
-                            "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    showEmptyState(true);
+                    isLoading = false;
+                    showPaginationLoading(false);
+                    if (page == 1) {
+                        showFullLoadingState(false);
+                        Toast.makeText(ProductManageActivity.this,
+                                "Network error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        showEmptyState(true);
+                    }
                 });
                 Log.e("API_ERROR", "Products request failed: " + e.getMessage());
             }
@@ -351,37 +428,86 @@ public class ProductManageActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 String responseBodyString = response.body() != null ? response.body().string() : "";
-                Log.d("API_RESPONSE", "Products raw response: " + responseBodyString);
+                Log.d("API_RESPONSE", "Products page " + page + " raw response: " + responseBodyString);
 
                 runOnUiThread(() -> {
+                    isLoading = false;
+                    showPaginationLoading(false);
+
                     try {
                         JSONObject responseObject = new JSONObject(responseBodyString);
 
                         if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
-                            parseProductsData(responseObject, subcategoryId);
-                            showProducts();
+                            List<Product> newProducts = parseProductsData(responseObject, subcategoryId, page);
+
+                            if (page == 1) {
+                                // First page - initialize the list
+                                if (!productCache.containsKey(subcategoryId)) {
+                                    productCache.put(subcategoryId, new ArrayList<>());
+                                }
+                                productCache.get(subcategoryId).clear();
+                                productCache.get(subcategoryId).addAll(newProducts);
+                                filteredProductList = new ArrayList<>(newProducts);
+                                showFullLoadingState(false);
+                                showProducts();
+                            } else {
+                                // Subsequent pages - append to existing list
+                                if (productCache.containsKey(subcategoryId)) {
+                                    productCache.get(subcategoryId).addAll(newProducts);
+                                    filteredProductList.addAll(newProducts);
+                                    productAdapter.notifyItemRangeInserted(
+                                            filteredProductList.size() - newProducts.size(),
+                                            newProducts.size()
+                                    );
+                                }
+                            }
+
+                            // Check if there are more pages
+                            hasMorePages = newProducts.size() == PAGE_SIZE;
+                            currentPage = page;
+
                         } else {
                             String errorMsg = responseObject.optString("message", "Failed to load products");
-                            Toast.makeText(ProductManageActivity.this, errorMsg, Toast.LENGTH_LONG).show();
-                            showFullLoadingState(false);
-                            showEmptyState(true);
+                            if (page == 1) {
+                                Toast.makeText(ProductManageActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                                showFullLoadingState(false);
+                                showEmptyState(true);
+                            }
                         }
                     } catch (JSONException e) {
                         Log.e("JSON_ERROR", "Products parsing failed: " + e.getMessage());
-                        Toast.makeText(ProductManageActivity.this,
-                                "Error parsing products: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        showFullLoadingState(false);
-                        showEmptyState(true);
+                        if (page == 1) {
+                            Toast.makeText(ProductManageActivity.this,
+                                    "Error parsing products: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            showFullLoadingState(false);
+                            showEmptyState(true);
+                        }
                     } catch (Exception e) {
                         Log.e("PARSE_ERROR", "Unexpected error: " + e.getMessage());
-                        Toast.makeText(ProductManageActivity.this,
-                                "Unexpected error occurred", Toast.LENGTH_LONG).show();
-                        showFullLoadingState(false);
-                        showEmptyState(true);
+                        if (page == 1) {
+                            Toast.makeText(ProductManageActivity.this,
+                                    "Unexpected error occurred", Toast.LENGTH_LONG).show();
+                            showFullLoadingState(false);
+                            showEmptyState(true);
+                        }
                     }
                 });
             }
         });
+    }
+
+    // ADDED: Load more products for pagination
+    private void loadMoreProducts() {
+        if (!isLoading && hasMorePages && currentLevel.equals("products")) {
+            loadProductsPage(selectedSubcategoryId, currentPage + 1);
+        }
+    }
+
+    // ADDED: Reset pagination state
+    private void resetPagination() {
+        currentPage = 1;
+        isLoading = false;
+        hasMorePages = true;
     }
 
     private void loadProductsData() {
@@ -493,24 +619,31 @@ public class ProductManageActivity extends AppCompatActivity {
                 subcategory.setProductCount(subcategoryObj.optString("products_count", "0"));
 
                 subcategoryList.add(subcategory);
-
-                // Add to filtered list if it belongs to the selected category
-                if (subcategory.getCategoryId().equals(categoryId)) {
-                    filteredSubcategoryList.add(subcategory);
-                }
             }
         }
 
+        // Filter subcategories for the selected category
+        filterSubcategoriesForCategory(categoryId);
         Log.d("PARSE_DEBUG", "Filtered subcategories for category " + categoryId + ": " + filteredSubcategoryList.size());
     }
 
-    private void parseProductsData(JSONObject responseObject, String subcategoryId) throws JSONException {
-        productList.clear();
-        filteredProductList.clear();
+    // ADDED: Helper method to filter subcategories
+    private void filterSubcategoriesForCategory(String categoryId) {
+        filteredSubcategoryList.clear();
+        for (Subcategory subcategory : subcategoryList) {
+            if (subcategory.getCategoryId().equals(categoryId)) {
+                filteredSubcategoryList.add(subcategory);
+            }
+        }
+    }
+
+    // UPDATED: Modified parseProductsData to support pagination
+    private List<Product> parseProductsData(JSONObject responseObject, String subcategoryId, int page) throws JSONException {
+        List<Product> newProducts = new ArrayList<>();
 
         if (responseObject.has("products") && !responseObject.isNull("products")) {
             JSONArray productsArray = responseObject.getJSONArray("products");
-            Log.d("PARSE_DEBUG", "All products count: " + productsArray.length());
+            Log.d("PARSE_DEBUG", "Products page " + page + " count: " + productsArray.length());
 
             for (int i = 0; i < productsArray.length(); i++) {
                 JSONObject productObj = productsArray.getJSONObject(i);
@@ -534,22 +667,23 @@ public class ProductManageActivity extends AppCompatActivity {
                 product.setStock(productObj.optString("stock", "0"));
                 product.setDiscountValue(productObj.optString("disc_value", "0"));
 
-                productList.add(product);
-
-                // Add to filtered list if it belongs to the selected subcategory
+                // Only add products that belong to the selected subcategory
                 if (product.getSubcategoryId().equals(subcategoryId)) {
-                    filteredProductList.add(product);
+                    newProducts.add(product);
                 }
             }
         }
 
-        productAdapter.setApiResponseData(responseObject);
-        Log.d("PARSE_DEBUG", "Filtered products for subcategory " + subcategoryId + ": " + filteredProductList.size());
+        if (page == 1) {
+            productAdapter.setApiResponseData(responseObject);
+        }
+
+        Log.d("PARSE_DEBUG", "Filtered products for subcategory " + subcategoryId + " page " + page + ": " + newProducts.size());
+        return newProducts;
     }
 
     private void parseGlobalProductsData(JSONObject responseObject) throws JSONException {
         // This method is only for global products data used in stats calculation
-        // We don't need to filter here as it's for overall statistics
         if (responseObject.has("products") && !responseObject.isNull("products")) {
             JSONArray productsArray = responseObject.getJSONArray("products");
             Log.d("PARSE_DEBUG", "Global products count for stats: " + productsArray.length());
@@ -759,19 +893,18 @@ public class ProductManageActivity extends AppCompatActivity {
         List<Product> tempFilteredList = new ArrayList<>();
 
         if (query.isEmpty()) {
-            // Show all products for the selected subcategory
-            for (Product product : productList) {
-                if (product.getSubcategoryId().equals(selectedSubcategoryId)) {
-                    tempFilteredList.add(product);
-                }
+            // Show all products for the selected subcategory from cache
+            if (productCache.containsKey(selectedSubcategoryId)) {
+                tempFilteredList.addAll(productCache.get(selectedSubcategoryId));
             }
         } else {
             String searchQuery = query.toLowerCase().trim();
-            for (Product product : productList) {
-                if (product.getSubcategoryId().equals(selectedSubcategoryId) &&
-                        (product.getName().toLowerCase().contains(searchQuery) ||
-                                (product.getDescription() != null && product.getDescription().toLowerCase().contains(searchQuery)))) {
-                    tempFilteredList.add(product);
+            if (productCache.containsKey(selectedSubcategoryId)) {
+                for (Product product : productCache.get(selectedSubcategoryId)) {
+                    if (product.getName().toLowerCase().contains(searchQuery) ||
+                            (product.getDescription() != null && product.getDescription().toLowerCase().contains(searchQuery))) {
+                        tempFilteredList.add(product);
+                    }
                 }
             }
         }
@@ -799,6 +932,7 @@ public class ProductManageActivity extends AppCompatActivity {
             rvItems.setVisibility(View.GONE);
             emptyLayout.setVisibility(View.GONE);
             cardBreadcrumb.setVisibility(View.GONE);
+            progressBarPagination.setVisibility(View.GONE);
 
             // Start all shimmer animations
             shimmerTotal.startShimmer();
@@ -842,6 +976,11 @@ public class ProductManageActivity extends AppCompatActivity {
         }
     }
 
+    // ADDED: Pagination loading indicator
+    private void showPaginationLoading(boolean show) {
+        progressBarPagination.setVisibility(show ? View.GONE : View.GONE);
+    }
+
     private void showSearchLoading(boolean show) {
         if (show) {
             shimmerSearch.setVisibility(View.VISIBLE);
@@ -870,6 +1009,7 @@ public class ProductManageActivity extends AppCompatActivity {
             emptyLayout.setVisibility(View.VISIBLE);
             rvItems.setVisibility(View.GONE);
             shimmerLayout.setVisibility(View.GONE);
+            progressBarPagination.setVisibility(View.GONE);
         } else {
             emptyLayout.setVisibility(View.GONE);
             rvItems.setVisibility(View.VISIBLE);
@@ -902,6 +1042,10 @@ public class ProductManageActivity extends AppCompatActivity {
             onBackPressed();
             return true;
         } else if (item.getItemId() == R.id.action_refresh) {
+            // FIXED: Clear cache on refresh
+            categoriesLoaded = false;
+            subcategoriesLoaded = false;
+            productCache.clear();
             loadInitialData();
             return true;
         }

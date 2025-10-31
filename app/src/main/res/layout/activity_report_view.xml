@@ -44,6 +44,7 @@
                 android:orientation="vertical"
                 android:padding="8dp">
 
+                <!-- Your existing shimmer content remains the same -->
                 <!-- Shimmer for Stats Cards - First Row -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -318,7 +319,7 @@
         </com.facebook.shimmer.ShimmerFrameLayout>
 
         <!-- Actual Content Layout -->
-        <ScrollView
+        <androidx.core.widget.NestedScrollView
             android:id="@+id/contentScrollView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -331,6 +332,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <!-- Your existing content remains exactly the same -->
                 <!-- Quick Stats Row -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -905,7 +907,7 @@
 
             </LinearLayout>
 
-        </ScrollView>
+        </androidx.core.widget.NestedScrollView>
 
     </LinearLayout>
 
