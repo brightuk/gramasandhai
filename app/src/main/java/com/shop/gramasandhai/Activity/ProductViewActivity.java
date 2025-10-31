@@ -6,7 +6,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
@@ -18,6 +20,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -38,6 +41,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.shop.gramasandhai.Adapter.VariantAdapter;
@@ -70,7 +74,7 @@ import okhttp3.Response;
 public class ProductViewActivity extends AppCompatActivity implements VariantAdapter.OnVariantChangeListener {
 
     // Views
-    private TextView tvProductName, tvProductId, tvProductPrice, tvProductDescription, tvStatusBadge;
+    private TextView tvProductName, tvProductId, tvProductPrice, tvProductDescription, tvStatusBadge, tvDiscountedPriceMain, tvProductDiscount;
     private TextView tvVariantsCount, tvActiveVariants, tvTotalStock, tvVariantsCountHeader;
     private TextView tvRating, tvErrorTitle, tvErrorMessage;
     private SwitchCompat switchProductStatus;
@@ -79,6 +83,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private ImageView ivProductImage;
     private ExtendedFloatingActionButton fabAddVariant;
     private MaterialButton btnEditPrice;
+    private LinearLayout layoutProductDiscount;
 
     private ProgressBar progressBar;
 
@@ -148,6 +153,9 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         progressBar = findViewById(R.id.progressBar);
         fabAddVariant = findViewById(R.id.fabAddVariant);
         btnEditPrice = findViewById(R.id.btnEditPrice);
+        tvProductDiscount = findViewById(R.id.tvProductDiscount);
+        tvDiscountedPriceMain = findViewById(R.id.tvDiscountedPriceMain);
+        layoutProductDiscount = findViewById(R.id.layoutProductDiscount);
 
         // Stats views
         tvVariantsCount = findViewById(R.id.tvVariantsCount);
@@ -240,11 +248,25 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         TextView tvCurrentPrice = dialogView.findViewById(R.id.tvCurrentPrice);
         TextInputEditText etNewPrice = dialogView.findViewById(R.id.etNewPrice);
         TextInputLayout textInputLayoutPrice = dialogView.findViewById(R.id.textInputLayoutPrice);
+
+        // NEW: Toggle buttons for discount type
+        MaterialButton btnNoDiscount = dialogView.findViewById(R.id.btnNoDiscount);
+        MaterialButton btnFlatDiscount = dialogView.findViewById(R.id.btnFlatDiscount);
+        MaterialButton btnPercentageDiscount = dialogView.findViewById(R.id.btnPercentageDiscount);
+
+        TextInputEditText etDiscountValue = dialogView.findViewById(R.id.etDiscountValue);
+        TextInputLayout textInputLayoutDiscountValue = dialogView.findViewById(R.id.textInputLayoutDiscountValue);
+        LinearLayout layoutDiscountedPrice = dialogView.findViewById(R.id.layoutDiscountedPrice);
+        TextView tvDiscountedPrice = dialogView.findViewById(R.id.tvDiscountedPrice);
+
         MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
         MaterialButton btnUpdate = dialogView.findViewById(R.id.btnUpdate);
         LinearLayout layoutWarning = dialogView.findViewById(R.id.layoutWarning);
         TextView tvWarning = dialogView.findViewById(R.id.tvWarning);
         FloatingActionButton fabEditImage = dialogView.findViewById(R.id.fabEditImage);
+
+        // Variables to track selected discount type
+        final String[] selectedDiscountType = {"0"}; // Default: No Discount
 
         // Set current data
         try {
@@ -264,6 +286,34 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                     etNewPrice.setSelection(etNewPrice.getText().length());
                 }
 
+                // Set discount type and value
+                if (productData.has("disc_type")) {
+                    String discType = productData.getString("disc_type");
+                    selectedDiscountType[0] = discType;
+
+                    // Set initial toggle button state
+                    setDiscountTypeToggleState(btnNoDiscount, btnFlatDiscount, btnPercentageDiscount, discType);
+
+                    if (productData.has("disc_value")) {
+                        String discValue = productData.getString("disc_value");
+                        etDiscountValue.setText(discValue);
+
+                        // Enable/disable discount value based on discount type
+                        if ("0".equals(discType)) {
+                            etDiscountValue.setEnabled(false);
+                            etDiscountValue.setText("");
+                            textInputLayoutDiscountValue.setHint("No Discount");
+                        } else {
+                            etDiscountValue.setEnabled(true);
+                            if ("1".equals(discType)) {
+                                textInputLayoutDiscountValue.setHint("Flat Discount Amount (₹)");
+                            } else if ("2".equals(discType)) {
+                                textInputLayoutDiscountValue.setHint("Percentage Discount (%)");
+                            }
+                        }
+                    }
+                }
+
                 // Load product image
                 if (productData.has("main_image")) {
                     String imageUrl = Attributes.Root_Url + "uploads/images/" + productData.getString("main_image");
@@ -280,20 +330,53 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             Log.e(TAG, "Error setting dialog data: " + e.getMessage());
         }
 
-        // If we have a selected image from previous selection, show it
-        if (selectedImageUri != null) {
-            Picasso.get()
-                    .load(selectedImageUri)
-                    .placeholder(R.drawable.ic_product_placeholder)
-                    .error(R.drawable.ic_product_placeholder)
-                    .into(dialogProductImage);
-        }
-
-        // Image selection
-        fabEditImage.setOnClickListener(v -> {
-            selectImageFromGallery();
+        // Toggle button click listeners
+        btnNoDiscount.setOnClickListener(v -> {
+            selectedDiscountType[0] = "0";
+            setDiscountTypeToggleState(btnNoDiscount, btnFlatDiscount, btnPercentageDiscount, "0");
+            etDiscountValue.setEnabled(false);
+            etDiscountValue.setText("");
+            textInputLayoutDiscountValue.setHint("No Discount");
+            textInputLayoutDiscountValue.setError(null);
+            layoutDiscountedPrice.setVisibility(View.GONE);
         });
 
+        btnFlatDiscount.setOnClickListener(v -> {
+            selectedDiscountType[0] = "1";
+            setDiscountTypeToggleState(btnNoDiscount, btnFlatDiscount, btnPercentageDiscount, "1");
+            etDiscountValue.setEnabled(true);
+            textInputLayoutDiscountValue.setHint("Flat Discount Amount (₹)");
+            calculateAndDisplayDiscountedPrice(etNewPrice, selectedDiscountType[0], etDiscountValue, tvDiscountedPrice, layoutDiscountedPrice);
+        });
+
+        btnPercentageDiscount.setOnClickListener(v -> {
+            selectedDiscountType[0] = "2";
+            setDiscountTypeToggleState(btnNoDiscount, btnFlatDiscount, btnPercentageDiscount, "2");
+            etDiscountValue.setEnabled(true);
+            textInputLayoutDiscountValue.setHint("Percentage Discount (%)");
+            calculateAndDisplayDiscountedPrice(etNewPrice, selectedDiscountType[0], etDiscountValue, tvDiscountedPrice, layoutDiscountedPrice);
+        });
+
+        // Calculate and display discounted price when values change
+        TextWatcher discountCalculator = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (!"0".equals(selectedDiscountType[0])) {
+                    calculateAndDisplayDiscountedPrice(etNewPrice, selectedDiscountType[0], etDiscountValue, tvDiscountedPrice, layoutDiscountedPrice);
+                }
+            }
+        };
+
+        etNewPrice.addTextChangedListener(discountCalculator);
+        etDiscountValue.addTextChangedListener(discountCalculator);
+
+        // Price validation and warning
         // Price validation and warning
         etNewPrice.addTextChangedListener(new TextWatcher() {
             @Override
@@ -316,28 +399,35 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                             // Price reduced by more than 50%
                             layoutWarning.setVisibility(View.VISIBLE);
                             tvWarning.setText("Price reduced significantly (over 50%)");
-                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color));
+                            btnUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color)));
                         } else if (newPriceVal > currentPriceVal * 2) {
                             // Price increased by more than 100%
                             layoutWarning.setVisibility(View.VISIBLE);
                             tvWarning.setText("Price increased significantly (over 100%)");
-                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color));
+                            btnUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color)));
                         } else if (newPriceVal < 1) {
                             // Price too low
                             layoutWarning.setVisibility(View.VISIBLE);
                             tvWarning.setText("Price seems too low");
-                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color));
+                            btnUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(ProductViewActivity.this, R.color.warning_color)));
                         } else {
                             layoutWarning.setVisibility(View.GONE);
-                            btnUpdate.setBackgroundColor(ContextCompat.getColor(ProductViewActivity.this, R.color.colorPrimary));
+                            btnUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(ProductViewActivity.this, R.color.colorPrimary)));
                         }
                     } catch (NumberFormatException e) {
                         layoutWarning.setVisibility(View.GONE);
+                        btnUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(ProductViewActivity.this, R.color.colorPrimary)));
                     }
                 } else {
                     layoutWarning.setVisibility(View.GONE);
+                    btnUpdate.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(ProductViewActivity.this, R.color.colorPrimary)));
                 }
             }
+        });
+
+        // Image selection
+        fabEditImage.setOnClickListener(v -> {
+            selectImageFromGallery();
         });
 
         // Cancel button
@@ -352,6 +442,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         btnUpdate.setOnClickListener(v -> {
             String productName = etProductName.getText().toString().trim();
             String newPrice = etNewPrice.getText().toString().trim();
+            String discountValue = etDiscountValue.getText().toString().trim();
 
             boolean hasError = false;
 
@@ -388,8 +479,46 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 hasError = true;
             }
 
+            // Validate discount
+            // Validate discount
+            if (!"0".equals(selectedDiscountType[0])) {
+                if (discountValue.isEmpty()) {
+                    textInputLayoutDiscountValue.setError("Please enter discount value");
+                    hasError = true;
+                } else {
+                    try {
+                        double discountVal = Double.parseDouble(discountValue);
+                        double priceVal = Double.parseDouble(newPrice);
+
+                        if ("2".equals(selectedDiscountType[0])) {
+                            if (discountVal < 0 || discountVal > 100) {
+                                textInputLayoutDiscountValue.setError("Percentage must be between 0-100");
+                                hasError = true;
+                            } else if ((priceVal * discountVal / 100) >= priceVal) {
+                                textInputLayoutDiscountValue.setError("Discount amount cannot be greater than or equal to price");
+                                hasError = true;
+                            } else {
+                                textInputLayoutDiscountValue.setError(null);
+                            }
+                        } else if ("1".equals(selectedDiscountType[0])) {
+                            if (discountVal < 0) {
+                                textInputLayoutDiscountValue.setError("Discount must be positive");
+                                hasError = true;
+                            } else if (discountVal >= priceVal) {
+                                textInputLayoutDiscountValue.setError("Discount cannot be greater than or equal to price");
+                                hasError = true;
+                            } else {
+                                textInputLayoutDiscountValue.setError(null);
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        textInputLayoutDiscountValue.setError("Please enter a valid discount");
+                        hasError = true;
+                    }
+                }
+            }
             if (!hasError) {
-                updateProductDetails(productName, newPrice, selectedImageFile);
+                updateProductDetails(productName, newPrice, selectedDiscountType[0], discountValue, selectedImageFile);
                 currentEditDialog.dismiss();
             }
         });
@@ -406,6 +535,97 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 textInputLayoutPrice.setError(null);
             }
         });
+
+        etDiscountValue.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                textInputLayoutDiscountValue.setError(null);
+            }
+        });
+
+        // Initial calculation
+        if (!"0".equals(selectedDiscountType[0])) {
+            calculateAndDisplayDiscountedPrice(etNewPrice, selectedDiscountType[0], etDiscountValue, tvDiscountedPrice, layoutDiscountedPrice);
+        }
+    }
+
+    // Helper method to set toggle button states
+    // Helper method to set toggle button states
+    private void setDiscountTypeToggleState(MaterialButton btnNoDiscount,
+                                            MaterialButton btnFlatDiscount,
+                                            MaterialButton btnPercentageDiscount,
+                                            String discountType) {
+
+        // Reset all buttons to default state
+        btnNoDiscount.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.white)));
+        btnNoDiscount.setTextColor(ContextCompat.getColor(this, R.color.primary_color));
+        btnNoDiscount.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_color)));
+
+        btnFlatDiscount.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.white)));
+        btnFlatDiscount.setTextColor(ContextCompat.getColor(this, R.color.primary_color));
+        btnFlatDiscount.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_color)));
+
+        btnPercentageDiscount.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.white)));
+        btnPercentageDiscount.setTextColor(ContextCompat.getColor(this, R.color.primary_color));
+        btnPercentageDiscount.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_color)));
+
+        // Set active state for selected button
+        switch (discountType) {
+            case "0": // No Discount
+                btnNoDiscount.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_color)));
+                btnNoDiscount.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+                break;
+            case "1": // Flat
+                btnFlatDiscount.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_color)));
+                btnFlatDiscount.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+                break;
+            case "2": // Percentage
+                btnPercentageDiscount.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_color)));
+                btnPercentageDiscount.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+                break;
+        }
+    }
+
+    // Updated method to calculate discounted price
+    // Updated method to calculate discounted price
+    private void calculateAndDisplayDiscountedPrice(TextInputEditText etNewPrice,
+                                                    String discountType,
+                                                    TextInputEditText etDiscountValue,
+                                                    TextView tvDiscountedPrice,
+                                                    LinearLayout layoutDiscountedPrice) {
+
+        String priceStr = etNewPrice.getText().toString().trim();
+        String discountValueStr = etDiscountValue.getText().toString().trim();
+
+        if (!priceStr.isEmpty() && !discountValueStr.isEmpty() && !"0".equals(discountType)) {
+            try {
+                double price = Double.parseDouble(priceStr);
+                double discountValue = Double.parseDouble(discountValueStr);
+                double discountedPrice = price;
+
+                if ("2".equals(discountType)) { // Percentage
+                    if (discountValue > 0 && discountValue <= 100) {
+                        discountedPrice = price - (price * discountValue / 100);
+                    }
+                } else if ("1".equals(discountType)) { // Flat
+                    if (discountValue > 0 && discountValue < price) {
+                        discountedPrice = price - discountValue;
+                    }
+                }
+
+                // Only show if discounted price is valid and less than original
+                if (discountedPrice > 0 && discountedPrice < price) {
+                    tvDiscountedPrice.setText("₹" + String.format("%.2f", discountedPrice));
+                    layoutDiscountedPrice.setVisibility(View.VISIBLE);
+                } else {
+                    layoutDiscountedPrice.setVisibility(View.GONE);
+                }
+
+            } catch (NumberFormatException e) {
+                layoutDiscountedPrice.setVisibility(View.GONE);
+            }
+        } else {
+            layoutDiscountedPrice.setVisibility(View.GONE);
+        }
     }
 
     private void selectImageFromGallery() {
@@ -501,14 +721,16 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         return file;
     }
 
-    private void updateProductDetails(String productName, String newPrice, File imageFile) {
+    private void updateProductDetails(String productName, String newPrice, String discountType, String discountValue, File imageFile) {
         showLoadingState();
 
         // Create multipart form data
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("prod_name", productName)
-                .addFormDataPart("prod_price", newPrice);
+                .addFormDataPart("prod_price", newPrice)
+                .addFormDataPart("disc_type", discountType)
+                .addFormDataPart("disc_value", discountValue.isEmpty() ? "0" : discountValue);
 
         // Add image file if selected
         if (imageFile != null && imageFile.exists()) {
@@ -521,7 +743,12 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
         // Build the request
         String url = Attributes.Main_Url + "store/productUpdate/" + productId;
-        Log.d(TAG, "Updating product - URL: " + url + ", Name: " + productName + ", Price: " + newPrice + ", Has Image: " + (imageFile != null));
+        Log.d(TAG, "Updating product - URL: " + url +
+                ", Name: " + productName +
+                ", Price: " + newPrice +
+                ", Discount Type: " + discountType +
+                ", Discount Value: " + discountValue +
+                ", Has Image: " + (imageFile != null));
 
         Request request = new Request.Builder()
                 .url(url)
@@ -606,9 +833,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             }
         });
     }
-
-    // ... REST OF YOUR EXISTING METHODS (loadProductDataFromAPI, displayProductDetails, etc.) ...
-    // Keep all your existing methods below exactly as they were
 
     private void updateStatusBadge(boolean isActive) {
         if (isActive) {
@@ -828,12 +1052,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                 }
             }
 
-            // Display product price
-            if (product.has("prod_price")) {
-                String price = product.getString("prod_price");
-                tvProductPrice.setText("₹" + price);
-            }
-
             // Display product ID
             if (product.has("id")) {
                 productId = product.getString("id");
@@ -884,6 +1102,84 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
                     ratingsText += " (" + product.getString("no_of_ratings") + " reviews)";
                 }
                 tvRating.setText(ratingsText);
+            }
+
+            // FIXED: Display discount information and calculate final price
+            double originalPrice = 0;
+            double finalPrice = 0;
+            boolean hasValidDiscount = false;
+            String discountText = "";
+            double discountedPrice = 0;
+
+            // Get original price
+            if (product.has("prod_price")) {
+                try {
+                    originalPrice = Double.parseDouble(product.getString("prod_price"));
+                    finalPrice = originalPrice; // Default to original price
+                } catch (NumberFormatException e) {
+                    Log.e("PRICE_ERROR", "Error parsing price: " + e.getMessage());
+                }
+            }
+
+            // Calculate discount if available
+            if (product.has("disc_type") && product.has("disc_value")) {
+                String discType = product.getString("disc_type");
+                String discValue = product.getString("disc_value");
+
+                Log.d("DISCOUNT_DEBUG", "Discount Type: " + discType + ", Discount Value: " + discValue);
+
+                // Check if discount is valid
+                if (!"0".equals(discType) && !discValue.isEmpty() && !"0".equals(discValue)) {
+                    try {
+                        double discountAmount = Double.parseDouble(discValue);
+
+                        if ("1".equals(discType)) { // Flat discount
+                            if (discountAmount > 0 && discountAmount < originalPrice) {
+                                discountedPrice = originalPrice - discountAmount;
+                                discountText = "₹" + String.format("%.2f", discountAmount) + " OFF";
+                                hasValidDiscount = true;
+                            }
+                        } else if ("2".equals(discType)) { // Percentage discount
+                            if (discountAmount > 0 && discountAmount <= 100) {
+                                double discountAmt = (originalPrice * discountAmount) / 100;
+                                if (discountAmt < originalPrice) {
+                                    discountedPrice = originalPrice - discountAmt;
+                                    discountText = String.format("%.0f", discountAmount) + "% OFF";
+                                    hasValidDiscount = true;
+                                }
+                            }
+                        }
+
+                        if (hasValidDiscount && discountedPrice > 0) {
+                            finalPrice = discountedPrice;
+                        }
+
+                    } catch (NumberFormatException e) {
+                        Log.e("DISCOUNT_ERROR", "Error parsing discount value: " + e.getMessage());
+                    }
+                }
+            }
+
+            // Display prices
+            if (hasValidDiscount) {
+                // Show discounted price as current price
+                tvProductPrice.setText("₹" + String.format("%.2f", finalPrice));
+
+                // Show original price with strike-through
+                tvDiscountedPriceMain.setText("₹" + String.format("%.2f", originalPrice));
+                tvDiscountedPriceMain.setPaintFlags(tvDiscountedPriceMain.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+
+                // Show discount text
+                tvProductDiscount.setText(discountText);
+                layoutProductDiscount.setVisibility(View.VISIBLE);
+
+                Log.d("DISCOUNT_DEBUG", "Discount applied - Original: " + originalPrice +
+                        ", Final: " + finalPrice + ", Discount: " + discountText);
+            } else {
+                // No discount - show only original price
+                tvProductPrice.setText("₹" + String.format("%.2f", originalPrice));
+                layoutProductDiscount.setVisibility(View.GONE);
+                Log.d("DISCOUNT_DEBUG", "No discount applied - Price: " + originalPrice);
             }
 
         } catch (JSONException e) {
@@ -1302,8 +1598,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             }
         });
     }
-
-
 
     // API Methods for status updates
     private void updateVariantStatusInAPI(String productId, String variantId, String status) {

@@ -220,7 +220,8 @@
             app:endIconTint="#3182CE"
             app:hintTextColor="#718096"
             app:startIconDrawable="@drawable/ic_price_tag"
-            app:startIconTint="#3182CE">
+            app:startIconTint="#3182CE"
+            android:layout_marginBottom="16dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNewPrice"
@@ -233,6 +234,152 @@
                 android:padding="16dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Discount Type Selection with Toggle Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Discount Type"
+                android:textSize="14sp"
+                android:textColor="#4A5568"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#E2E8F0"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <!-- No Discount Toggle -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNoDiscount"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="No Discount"
+                        android:textSize="12sp"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:cornerRadius="8dp"
+                        app:strokeColor="#E2E8F0"
+                        app:backgroundTint="@color/white" />
+
+                    <!-- Flat Discount Toggle -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFlatDiscount"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="Flat"
+                        android:textSize="12sp"
+                        android:layout_marginStart="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:cornerRadius="8dp"
+                        app:strokeColor="#E2E8F0"
+                        app:backgroundTint="@color/white" />
+
+                    <!-- Percentage Discount Toggle -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPercentageDiscount"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="Percentage"
+                        android:textSize="12sp"
+                        android:layout_marginStart="4dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:cornerRadius="8dp"
+                        app:strokeColor="#E2E8F0"
+                        app:backgroundTint="@color/white" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Discount Value Input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/textInputLayoutDiscountValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Discount Value"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxStrokeColor="#3182CE"
+            app:endIconMode="custom"
+            app:endIconDrawable="@drawable/ic_percent"
+            app:endIconTint="#3182CE"
+            app:hintTextColor="#718096"
+            app:startIconDrawable="@drawable/ic_discount_value"
+            app:startIconTint="#3182CE">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDiscountValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:maxLines="1"
+                android:textSize="16sp"
+                android:textColor="#1A202C"
+                android:padding="16dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Discounted Price Display -->
+        <LinearLayout
+            android:id="@+id/layoutDiscountedPrice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/discounted_price_background"
+            android:padding="16dp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_rupee"
+                android:layout_marginEnd="8dp"
+                app:tint="#38A169" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Discounted Price"
+                android:textSize="14sp"
+                android:textColor="#718096" />
+
+            <TextView
+                android:id="@+id/tvDiscountedPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₹0"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#38A169" />
+
+        </LinearLayout>
 
         <!-- Warning Message -->
         <LinearLayout
