@@ -58,10 +58,9 @@ public class AddProductActivity extends AppCompatActivity {
 
     // Main form fields
     private TextInputEditText etProductName, etMeasurement, etPrice, etSKU, etHSNCode, etStock, etDiscountPrice;
-    private TextInputEditText etManufacturer, etMadeIn, etProductDescription, etShippingPolicy, etFSSAINo, etTax;
     private RadioGroup radioProductType, radioVariantControl;
     private RadioButton radioPacked, radioLoose, radioVariantYes, radioVariantNo;
-    private Spinner spinnerMeasurementUnit, spinnerStockUnit, spinnerDiscountType, spinnerStatus;
+    private Spinner spinnerMeasurementUnit, spinnerDiscountType, spinnerStatus;
     private Spinner spinnerCategory, spinnerSubcategory;
     private Button btnSelectImage, btnAddVariant, btnSubmit;
     private LinearLayout containerVariants;
@@ -85,9 +84,6 @@ public class AddProductActivity extends AppCompatActivity {
     // Adapters
     private ArrayAdapter<Category> categoryAdapter;
     private ArrayAdapter<Subcategory> subcategoryAdapter;
-
-    // Additional fields
-    private CheckBox cbReturnable, cbCancelable, cbCodAllowed;
 
     // Draft helper class
     private static class DraftItem {
@@ -208,14 +204,6 @@ public class AddProductActivity extends AppCompatActivity {
             etStock = findViewById(R.id.etStock);
             etDiscountPrice = findViewById(R.id.etDiscountPrice);
 
-            // New fields
-            etManufacturer = findViewById(R.id.etManufacturer);
-            etMadeIn = findViewById(R.id.etMadeIn);
-            etProductDescription = findViewById(R.id.etProductDescription);
-            etShippingPolicy = findViewById(R.id.etShippingPolicy);
-            etFSSAINo = findViewById(R.id.etFSSAINo);
-            etTax = findViewById(R.id.etTax);
-
             // Radio Buttons
             radioProductType = findViewById(R.id.radioProductType);
             radioPacked = findViewById(R.id.radioPacked);
@@ -228,7 +216,6 @@ public class AddProductActivity extends AppCompatActivity {
 
             // Spinners
             spinnerMeasurementUnit = findViewById(R.id.spinnerMeasurementUnit);
-            spinnerStockUnit = findViewById(R.id.spinnerStockUnit);
             spinnerDiscountType = findViewById(R.id.spinnerDiscountType);
             spinnerStatus = findViewById(R.id.spinnerStatus);
             spinnerCategory = findViewById(R.id.spinnerCategory);
@@ -245,11 +232,6 @@ public class AddProductActivity extends AppCompatActivity {
             // Image Preview
             ivProductImagePreview = findViewById(R.id.ivProductImagePreview);
             tvNoImage = findViewById(R.id.tvNoImage);
-
-            // Checkboxes
-            cbReturnable = findViewById(R.id.cbReturnable);
-            cbCancelable = findViewById(R.id.cbCancelable);
-            cbCodAllowed = findViewById(R.id.cbCodAllowed);
 
             Log.d(TAG, "All views initialized successfully");
         } catch (Exception e) {
@@ -370,12 +352,6 @@ public class AddProductActivity extends AppCompatActivity {
             ArrayAdapter<String> measurementAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, measurementUnits);
             measurementAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinnerMeasurementUnit.setAdapter(measurementAdapter);
-
-            // Stock Unit Spinner
-            String[] stockUnits = {"Select Unit", "piece", "pack", "box", "carton", "set", "pair", "dozen"};
-            ArrayAdapter<String> stockUnitAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, stockUnits);
-            stockUnitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinnerStockUnit.setAdapter(stockUnitAdapter);
 
             // Discount Type Spinner
             String[] discountTypes = {"Select Discount Type", "No Discount", "Flat", "Percentage"};
@@ -746,32 +722,76 @@ public class AddProductActivity extends AppCompatActivity {
         }
     }
 
+    private void handleGalleryImage(Uri selectedImageUri) {
+        try {
+            // Copy the gallery image to app storage
+            File copiedImageFile = copyImageToAppStorage(selectedImageUri);
+            if (copiedImageFile != null && copiedImageFile.exists()) {
+                productImageUri = FileProvider.getUriForFile(this,
+                        getApplicationContext().getPackageName() + ".provider", copiedImageFile);
+                currentPhotoPath = copiedImageFile.getAbsolutePath();
+                displaySelectedImage();
+            } else {
+                throw new IOException("Failed to copy image to app storage");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling gallery image: " + e.getMessage());
+            Toast.makeText(this, "Error processing selected image", Toast.LENGTH_SHORT).show();
+            // Fallback to original URI
+            productImageUri = selectedImageUri;
+            displaySelectedImage();
+        }
+    }
+
+    private File copyImageToAppStorage(Uri sourceUri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(sourceUri);
+        if (inputStream == null) {
+            throw new IOException("Cannot open input stream from URI");
+        }
+
+        // Create a file in app's internal storage
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "GALLERY_" + timeStamp + ".jpg";
+        File destinationFile = new File(storageDir, imageFileName);
+
+        FileOutputStream outputStream = new FileOutputStream(destinationFile);
+
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        outputStream.close();
+        inputStream.close();
+
+        return destinationFile;
+    }
 
     private void displaySelectedImage() {
-        if (productImageUri != null) {
+        runOnUiThread(() -> {
             try {
-                ivProductImagePreview.setImageURI(productImageUri);
-                ivProductImagePreview.setVisibility(View.VISIBLE);
-                tvNoImage.setVisibility(View.GONE);
-                btnSelectImage.setText("Change Image");
-
-                // Force image view to redraw
-                ivProductImagePreview.invalidate();
-
+                if (productImageUri != null) {
+                    ivProductImagePreview.setImageURI(productImageUri);
+                    ivProductImagePreview.setVisibility(View.VISIBLE);
+                    tvNoImage.setVisibility(View.GONE);
+                    btnSelectImage.setText("Change Image");
+                } else {
+                    ivProductImagePreview.setVisibility(View.GONE);
+                    tvNoImage.setVisibility(View.VISIBLE);
+                    btnSelectImage.setText("Select Product Image");
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Error displaying selected image: " + e.getMessage());
-                Toast.makeText(this, "Error displaying image", Toast.LENGTH_SHORT).show();
                 // Reset image state on error
                 productImageUri = null;
+                currentPhotoPath = null;
                 ivProductImagePreview.setVisibility(View.GONE);
                 tvNoImage.setVisibility(View.VISIBLE);
                 btnSelectImage.setText("Select Product Image");
             }
-        } else {
-            ivProductImagePreview.setVisibility(View.GONE);
-            tvNoImage.setVisibility(View.VISIBLE);
-            btnSelectImage.setText("Select Product Image");
-        }
+        });
     }
 
     private void addVariantForm() {
@@ -893,12 +913,6 @@ public class AddProductActivity extends AppCompatActivity {
         String sku = etSKU.getText().toString().trim();
         String hsnCode = etHSNCode.getText().toString().trim();
         String stock = etStock.getText().toString().trim();
-        String manufacturer = etManufacturer.getText().toString().trim();
-        String madeIn = etMadeIn.getText().toString().trim();
-        String productDescription = etProductDescription.getText().toString().trim();
-        String shippingPolicy = etShippingPolicy.getText().toString().trim();
-        String fssaiNo = etFSSAINo.getText().toString().trim();
-        String tax = etTax.getText().toString().trim();
 
         if (productName.isEmpty()) {
             etProductName.setError("Product name is required");
@@ -941,11 +955,6 @@ public class AddProductActivity extends AppCompatActivity {
             return false;
         }
 
-        if (spinnerStockUnit.getSelectedItemPosition() == 0) {
-            Toast.makeText(this, "Please select stock unit", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
         if (spinnerDiscountType.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select discount type", Toast.LENGTH_SHORT).show();
             return false;
@@ -953,16 +962,6 @@ public class AddProductActivity extends AppCompatActivity {
 
         if (spinnerStatus.getSelectedItemPosition() == 0) {
             Toast.makeText(this, "Please select status", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (fssaiNo.isEmpty()) {
-            etFSSAINo.setError("FSSAI number is required");
-            return false;
-        }
-
-        if (tax.isEmpty()) {
-            etTax.setError("Tax is required");
             return false;
         }
 
@@ -1046,18 +1045,9 @@ public class AddProductActivity extends AppCompatActivity {
             String sku = etSKU.getText().toString().trim();
             String hsnCode = etHSNCode.getText().toString().trim();
             String stock = etStock.getText().toString().trim();
-            String stockUnit = spinnerStockUnit.getSelectedItem().toString();
             String discountType = spinnerDiscountType.getSelectedItem().toString();
             String discountPrice = etDiscountPrice.getText().toString().trim();
             String status = spinnerStatus.getSelectedItem().toString();
-
-            // Get additional fields
-            String manufacturer = etManufacturer.getText().toString().trim();
-            String madeIn = etMadeIn.getText().toString().trim();
-            String productDescription = etProductDescription.getText().toString().trim();
-            String shippingPolicy = etShippingPolicy.getText().toString().trim();
-            String fssaiNo = etFSSAINo.getText().toString().trim();
-            String tax = etTax.getText().toString().trim();
 
             // Get category data
             Category selectedCategory = (Category) spinnerCategory.getSelectedItem();
@@ -1066,37 +1056,23 @@ public class AddProductActivity extends AppCompatActivity {
             String categoryId = selectedCategory.getId();
             String subcategoryId = selectedSubcategory.getId();
 
-            // Get checkbox values
-            int returnable = cbReturnable.isChecked() ? 1 : 0;
-            int cancelable = cbCancelable.isChecked() ? 1 : 0;
-            int codAllowed = cbCodAllowed.isChecked() ? 1 : 0;
-
             // Create multipart request
             MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("product_name", productName)
                     .addFormDataPart("measureUnit", measurementUnit)
-                    .addFormDataPart("tax", tax)
-                    .addFormDataPart("fssai_no", fssaiNo)
                     .addFormDataPart("category", categoryId)
                     .addFormDataPart("sub_category", subcategoryId)
                     .addFormDataPart("productType", productType)
-                    .addFormDataPart("manufacturer", manufacturer)
-                    .addFormDataPart("made_in", madeIn)
-                    .addFormDataPart("returnable", String.valueOf(returnable))
                     .addFormDataPart("measurement", measurement)
-                    .addFormDataPart("cancelable", String.valueOf(cancelable))
-                    .addFormDataPart("cod_allowed", String.valueOf(codAllowed))
-                    .addFormDataPart("stock", stock)
-                    .addFormDataPart("product_description", productDescription)
-                    .addFormDataPart("shippingPolicy", shippingPolicy)
+                    .addFormDataPart("stocks", stock)
                     .addFormDataPart("prices", price)
                     .addFormDataPart("sku_code", sku)
-                    .addFormDataPart("stock_unit", stockUnit)
                     .addFormDataPart("hsn_code", hsnCode)
                     .addFormDataPart("discount_type", discountType)
                     .addFormDataPart("discount_price", discountPrice)
                     .addFormDataPart("status", status);
+
             // Add variant control parameter
             String variantControl = radioVariantYes.isChecked() ? "1" : "0";
             multipartBuilder.addFormDataPart("is_variant", variantControl);
@@ -1203,15 +1179,15 @@ public class AddProductActivity extends AppCompatActivity {
                 Spinner spinnerVariantStatus = variantView.findViewById(R.id.spinnerVariantStatus);
 
                 // Get values from form
-                String measurement = etVariantMeasurement.getText().toString().trim();
+                String measurement = safeGetText(etVariantMeasurement);
                 String measureUnit = spinnerVariantMeasurementUnit.getSelectedItem().toString();
-                String price = etVariantPrice.getText().toString().trim();
-                String skuCode = etVariantSKU.getText().toString().trim();
-                String hsnCode = etVariantHSNCode.getText().toString().trim();
-                String stock = etVariantStock.getText().toString().trim();
+                String price = safeGetText(etVariantPrice);
+                String skuCode = safeGetText(etVariantSKU);
+                String hsnCode = safeGetText(etVariantHSNCode);
+                String stock = safeGetText(etVariantStock);
                 String stockUnit = spinnerVariantStockUnit.getSelectedItem().toString();
                 String discountType = getDiscountTypeValue(spinnerVariantDiscountType.getSelectedItem().toString());
-                String discountPrice = etVariantDiscountPrice.getText().toString().trim();
+                String discountPrice = safeGetText(etVariantDiscountPrice);
                 String status = getStatusValue(spinnerVariantStatus.getSelectedItem().toString());
 
                 // Add to arrays
@@ -1267,7 +1243,14 @@ public class AddProductActivity extends AppCompatActivity {
         }
     }
 
-    // ==================== DRAFT FUNCTIONALITY ====================
+    private String safeGetText(TextInputEditText editText) {
+        if (editText != null && editText.getText() != null) {
+            return editText.getText().toString().trim();
+        }
+        return "";
+    }
+
+    // ==================== FIXED DRAFT FUNCTIONALITY ====================
 
     private void saveAsDraft() {
         try {
@@ -1460,17 +1443,8 @@ public class AddProductActivity extends AppCompatActivity {
             etStock.setText(draftData.optString("stock", ""));
             etDiscountPrice.setText(draftData.optString("discount_price", ""));
 
-            // Restore additional fields
-            etManufacturer.setText(draftData.optString("manufacturer", ""));
-            etMadeIn.setText(draftData.optString("made_in", ""));
-            etProductDescription.setText(draftData.optString("product_description", ""));
-            etShippingPolicy.setText(draftData.optString("shipping_policy", ""));
-            etFSSAINo.setText(draftData.optString("fssai_no", ""));
-            etTax.setText(draftData.optString("tax", ""));
-
             // Restore spinners - with safety checks
             safeSetSpinnerSelection(spinnerMeasurementUnit, draftData.optInt("measurement_unit_position", 0));
-            safeSetSpinnerSelection(spinnerStockUnit, draftData.optInt("stock_unit_position", 0));
             safeSetSpinnerSelection(spinnerDiscountType, draftData.optInt("discount_type_position", 0));
             safeSetSpinnerSelection(spinnerStatus, draftData.optInt("status_position", 0));
             safeSetSpinnerSelection(spinnerCategory, draftData.optInt("category_position", 0));
@@ -1483,11 +1457,6 @@ public class AddProductActivity extends AppCompatActivity {
             } else {
                 radioLoose.setChecked(true);
             }
-
-            // Restore checkboxes
-            cbReturnable.setChecked(draftData.optBoolean("returnable", false));
-            cbCancelable.setChecked(draftData.optBoolean("cancelable", false));
-            cbCodAllowed.setChecked(draftData.optBoolean("cod_allowed", false));
 
             // Restore variant control
             String variantControl = draftData.optString("variant_control", "no");
@@ -1528,70 +1497,28 @@ public class AddProductActivity extends AppCompatActivity {
                 hideVariantSection();
             }
 
-            // Handle image loading - IMPROVED VERSION
-            boolean imageLoaded = false;
-
-// First try to load from saved path (for camera images)
+            // Handle image loading
             if (draftData.has("image_path")) {
                 String imagePath = draftData.getString("image_path");
-                Log.d(TAG, "Loading image from path: " + imagePath);
+                Log.d(TAG, "Attempting to load image from path: " + imagePath);
+
                 if (imagePath != null && !imagePath.isEmpty()) {
                     File imageFile = new File(imagePath);
                     if (imageFile.exists()) {
                         try {
                             productImageUri = FileProvider.getUriForFile(this,
                                     getApplicationContext().getPackageName() + ".provider", imageFile);
-                            currentPhotoPath = imagePath; // Make sure to set this
+                            currentPhotoPath = imagePath;
                             displaySelectedImage();
-                            imageLoaded = true;
-                            Log.d(TAG, "Image loaded successfully from path: " + imagePath);
-                            Toast.makeText(this, "Saved image loaded", Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "Image loaded successfully from draft");
                         } catch (Exception e) {
-                            Log.e(TAG, "Error creating URI from file: " + e.getMessage());
+                            Log.e(TAG, "Error loading image from draft path: " + e.getMessage());
+                            // Continue without image
                         }
                     } else {
-                        Log.e(TAG, "Image file not found at path: " + imagePath);
+                        Log.w(TAG, "Image file not found at saved path: " + imagePath);
                     }
                 }
-            }
-
-// If path loading failed, try URI (for gallery images)
-            if (!imageLoaded && draftData.has("image_uri")) {
-                String imageUriString = draftData.getString("image_uri");
-                Log.d(TAG, "Loading image from URI: " + imageUriString);
-                try {
-                    productImageUri = Uri.parse(imageUriString);
-                    if (productImageUri != null) {
-                        // Check if URI is still accessible
-                        try {
-                            InputStream inputStream = getContentResolver().openInputStream(productImageUri);
-                            if (inputStream != null) {
-                                inputStream.close();
-                                displaySelectedImage();
-                                imageLoaded = true;
-                                Log.d(TAG, "Gallery image loaded successfully from URI");
-                                Toast.makeText(this, "Saved image loaded from gallery", Toast.LENGTH_SHORT).show();
-                            }
-                        } catch (Exception e) {
-                            Log.e(TAG, "Gallery image URI no longer accessible: " + e.getMessage());
-                            showImageRecoveryDialog();
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error parsing image URI: " + e.getMessage());
-                }
-            }
-
-// If both methods failed, show appropriate message
-            if (!imageLoaded) {
-                Log.w(TAG, "Could not load saved image from draft");
-                // Don't show toast here as it might be confusing for users
-                // Just leave the image selection empty
-                productImageUri = null;
-                currentPhotoPath = null;
-                ivProductImagePreview.setVisibility(View.GONE);
-                tvNoImage.setVisibility(View.VISIBLE);
-                btnSelectImage.setText("Select Product Image");
             }
 
             Toast.makeText(this, "Draft loaded successfully", Toast.LENGTH_SHORT).show();
@@ -1600,66 +1527,6 @@ public class AddProductActivity extends AppCompatActivity {
             Log.e(TAG, "Error loading draft: " + e.getMessage(), e);
             Toast.makeText(this, "Error loading draft: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-    }
-    private void showImageRecoveryDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Image Not Available")
-                .setMessage("The saved image is no longer available. This can happen if the original image was moved, deleted, or if you've cleared app data. You'll need to select a new image.")
-                .setPositiveButton("OK", (dialog, which) -> {
-                    // Clear the invalid image references
-                    productImageUri = null;
-                    currentPhotoPath = null;
-                    displaySelectedImage();
-                })
-                .show();
-    }
-
-
-    private void handleGalleryImage(Uri selectedImageUri) {
-        try {
-            // Copy the gallery image to app storage
-            File copiedImageFile = copyImageToAppStorage(selectedImageUri);
-            if (copiedImageFile != null && copiedImageFile.exists()) {
-                productImageUri = FileProvider.getUriForFile(this,
-                        getApplicationContext().getPackageName() + ".provider", copiedImageFile);
-                currentPhotoPath = copiedImageFile.getAbsolutePath();
-                displaySelectedImage();
-            } else {
-                throw new IOException("Failed to copy image to app storage");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error handling gallery image: " + e.getMessage());
-            Toast.makeText(this, "Error processing selected image", Toast.LENGTH_SHORT).show();
-            // Fallback to original URI
-            productImageUri = selectedImageUri;
-            displaySelectedImage();
-        }
-    }
-
-    private File copyImageToAppStorage(Uri sourceUri) throws IOException {
-        InputStream inputStream = getContentResolver().openInputStream(sourceUri);
-        if (inputStream == null) {
-            throw new IOException("Cannot open input stream from URI");
-        }
-
-        // Create a file in app's internal storage
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String imageFileName = "GALLERY_" + timeStamp + ".jpg";
-        File destinationFile = new File(storageDir, imageFileName);
-
-        FileOutputStream outputStream = new FileOutputStream(destinationFile);
-
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = inputStream.read(buffer)) != -1) {
-            outputStream.write(buffer, 0, bytesRead);
-        }
-
-        outputStream.close();
-        inputStream.close();
-
-        return destinationFile;
     }
 
     private JSONObject collectFormData() throws JSONException {
@@ -1677,27 +1544,13 @@ public class AddProductActivity extends AppCompatActivity {
         draftData.put("sku", etSKU.getText().toString().trim());
         draftData.put("hsn_code", etHSNCode.getText().toString().trim());
         draftData.put("stock", etStock.getText().toString().trim());
-        draftData.put("stock_unit_position", spinnerStockUnit.getSelectedItemPosition());
         draftData.put("discount_price", etDiscountPrice.getText().toString().trim());
         draftData.put("discount_type_position", spinnerDiscountType.getSelectedItemPosition());
         draftData.put("status_position", spinnerStatus.getSelectedItemPosition());
 
-        // Additional fields
-        draftData.put("manufacturer", etManufacturer.getText().toString().trim());
-        draftData.put("made_in", etMadeIn.getText().toString().trim());
-        draftData.put("product_description", etProductDescription.getText().toString().trim());
-        draftData.put("shipping_policy", etShippingPolicy.getText().toString().trim());
-        draftData.put("fssai_no", etFSSAINo.getText().toString().trim());
-        draftData.put("tax", etTax.getText().toString().trim());
-
         // Category data
         draftData.put("category_position", spinnerCategory.getSelectedItemPosition());
         draftData.put("subcategory_position", spinnerSubcategory.getSelectedItemPosition());
-
-        // Checkboxes
-        draftData.put("returnable", cbReturnable.isChecked());
-        draftData.put("cancelable", cbCancelable.isChecked());
-        draftData.put("cod_allowed", cbCodAllowed.isChecked());
 
         // Variant control
         draftData.put("variant_control", radioVariantYes.isChecked() ? "yes" : "no");
@@ -1720,12 +1573,12 @@ public class AddProductActivity extends AppCompatActivity {
                 Spinner spinnerVariantDiscountType = variantView.findViewById(R.id.spinnerVariantDiscountType);
                 Spinner spinnerVariantStatus = variantView.findViewById(R.id.spinnerVariantStatus);
 
-                variantData.put("measurement", etVariantMeasurement.getText().toString().trim());
-                variantData.put("price", etVariantPrice.getText().toString().trim());
-                variantData.put("sku", etVariantSKU.getText().toString().trim());
-                variantData.put("hsn_code", etVariantHSNCode.getText().toString().trim());
-                variantData.put("stock", etVariantStock.getText().toString().trim());
-                variantData.put("discount_price", etVariantDiscountPrice.getText().toString().trim());
+                variantData.put("measurement", safeGetText(etVariantMeasurement));
+                variantData.put("price", safeGetText(etVariantPrice));
+                variantData.put("sku", safeGetText(etVariantSKU));
+                variantData.put("hsn_code", safeGetText(etVariantHSNCode));
+                variantData.put("stock", safeGetText(etVariantStock));
+                variantData.put("discount_price", safeGetText(etVariantDiscountPrice));
 
                 variantData.put("measurement_unit_position", spinnerVariantMeasurementUnit.getSelectedItemPosition());
                 variantData.put("stock_unit_position", spinnerVariantStockUnit.getSelectedItemPosition());
@@ -1737,96 +1590,41 @@ public class AddProductActivity extends AppCompatActivity {
             draftData.put("variants", variantsArray);
         }
 
-        // Image handling - IMPROVED: Save both path and URI
-        // In collectFormData method, replace the image handling section with:
+        // Image handling - Only save if we have a valid path
         if (productImageUri != null && currentPhotoPath != null) {
-            draftData.put("image_path", currentPhotoPath);
-            Log.d(TAG, "Saved image path: " + currentPhotoPath);
-            // Don't save the URI to avoid permission issues
+            File imageFile = new File(currentPhotoPath);
+            if (imageFile.exists()) {
+                draftData.put("image_path", currentPhotoPath);
+                Log.d(TAG, "Saved image path: " + currentPhotoPath);
+            } else {
+                Log.w(TAG, "Image file doesn't exist, not saving to draft: " + currentPhotoPath);
+            }
         }
 
         return draftData;
     }
 
-    // Improved method to get image file from URI
-    private File getImageFileFromUri(Uri uri) {
-        if (uri == null) return null;
-
-        try {
-            String scheme = uri.getScheme();
-            if (scheme != null && scheme.equals("file")) {
-                // File URI
-                return new File(uri.getPath());
-            } else if (scheme != null && scheme.equals("content")) {
-                // Content URI - try to get the file path
-                String filePath = getRealPathFromURI(uri);
-                if (filePath != null) {
-                    return new File(filePath);
-                } else {
-                    // For content URIs that we can't resolve, create a temporary file
-                    return createTempFileFromUri(uri);
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting image file from URI: " + e.getMessage(), e);
-        }
-        return null;
-    }
-
-    // Create temporary file from content URI
-    private File createTempFileFromUri(Uri uri) {
-        try {
-            android.content.ContentResolver resolver = getContentResolver();
-            java.io.InputStream inputStream = resolver.openInputStream(uri);
-            if (inputStream != null) {
-                File tempFile = File.createTempFile("temp_image", ".jpg", getCacheDir());
-                java.io.FileOutputStream outputStream = new java.io.FileOutputStream(tempFile);
-
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
-
-                outputStream.close();
-                inputStream.close();
-                return tempFile;
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error creating temp file from URI: " + e.getMessage(), e);
-        }
-        return null;
-    }
-
-    private String getRealPathFromURI(Uri contentUri) {
-        if (contentUri == null) return null;
-
-        Cursor cursor = null;
-        try {
-            String[] proj = {MediaStore.Images.Media.DATA};
-            cursor = getContentResolver().query(contentUri, proj, null, null, null);
-
-            if (cursor != null && cursor.moveToFirst()) {
-                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                return cursor.getString(column_index);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting real path from URI: " + e.getMessage());
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-        return null;
-    }
-
+    // Improved spinner selection with bounds checking
     private void safeSetSpinnerSelection(Spinner spinner, int position) {
         try {
-            if (spinner != null && position >= 0 && position < spinner.getCount()) {
+            if (spinner != null && spinner.getAdapter() != null &&
+                    position >= 0 && position < spinner.getAdapter().getCount()) {
                 spinner.setSelection(position);
+            } else {
+                Log.w(TAG, "Invalid spinner position: " + position + " for spinner with count: " +
+                        (spinner != null && spinner.getAdapter() != null ? spinner.getAdapter().getCount() : "null"));
             }
         } catch (Exception e) {
             Log.e(TAG, "Error setting spinner selection: " + e.getMessage());
+        }
+    }
+
+    private void safeSetVariantSpinner(View variantView, int spinnerId, int position) {
+        try {
+            Spinner spinner = variantView.findViewById(spinnerId);
+            safeSetSpinnerSelection(spinner, position);
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting variant spinner: " + e.getMessage());
         }
     }
 
@@ -1841,60 +1639,40 @@ public class AddProductActivity extends AppCompatActivity {
         }
     }
 
-    private void safeSetVariantSpinner(View variantView, int spinnerId, int position) {
-        try {
-            Spinner spinner = variantView.findViewById(spinnerId);
-            if (spinner != null && position >= 0 && position < spinner.getCount()) {
-                spinner.setSelection(position);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error setting variant spinner: " + e.getMessage());
-        }
-    }
-
     private void clearForm() {
-        // Clear all fields
-        etProductName.setText("");
-        etMeasurement.setText("");
-        etPrice.setText("");
-        etSKU.setText("");
-        etHSNCode.setText("");
-        etStock.setText("");
-        etDiscountPrice.setText("");
-        etManufacturer.setText("");
-        etMadeIn.setText("");
-        etProductDescription.setText("");
-        etShippingPolicy.setText("");
-        etFSSAINo.setText("");
-        etTax.setText("");
+        try {
+            // Clear all fields
+            etProductName.setText("");
+            etMeasurement.setText("");
+            etPrice.setText("");
+            etSKU.setText("");
+            etHSNCode.setText("");
+            etStock.setText("");
+            etDiscountPrice.setText("");
 
-        // Reset spinners
-        safeSetSpinnerSelection(spinnerMeasurementUnit, 0);
-        safeSetSpinnerSelection(spinnerStockUnit, 0);
-        safeSetSpinnerSelection(spinnerDiscountType, 0);
-        safeSetSpinnerSelection(spinnerStatus, 0);
-        safeSetSpinnerSelection(spinnerCategory, 0);
-        safeSetSpinnerSelection(spinnerSubcategory, 0);
+            // Reset spinners to first position safely
+            safeSetSpinnerSelection(spinnerMeasurementUnit, 0);
+            safeSetSpinnerSelection(spinnerDiscountType, 0);
+            safeSetSpinnerSelection(spinnerStatus, 0);
+            safeSetSpinnerSelection(spinnerCategory, 0);
+            safeSetSpinnerSelection(spinnerSubcategory, 0);
 
-        // Reset radio buttons
-        radioPacked.setChecked(true);
-        radioVariantNo.setChecked(true);
+            // Reset radio buttons
+            radioPacked.setChecked(true);
+            radioVariantNo.setChecked(true);
 
-        // Reset checkboxes
-        cbReturnable.setChecked(false);
-        cbCancelable.setChecked(false);
-        cbCodAllowed.setChecked(false);
+            // Clear image
+            productImageUri = null;
+            currentPhotoPath = null;
+            displaySelectedImage();
 
-        // Clear image
-        productImageUri = null;
-        currentPhotoPath = null;
-        ivProductImagePreview.setVisibility(View.GONE);
-        tvNoImage.setVisibility(View.VISIBLE);
-        btnSelectImage.setText("Select Product Image");
+            // Clear variants
+            clearAllVariants();
+            hideVariantSection();
 
-        // Clear variants
-        clearAllVariants();
-        hideVariantSection();
+        } catch (Exception e) {
+            Log.e(TAG, "Error clearing form: " + e.getMessage(), e);
+        }
     }
 
     private void showDeleteConfirmation(String draftId) {
@@ -2027,7 +1805,6 @@ public class AddProductActivity extends AppCompatActivity {
         }
     }
 
-
     private int clearOldDrafts() {
         SharedPreferences prefs = getSharedPreferences(DRAFT_PREF_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -2065,13 +1842,86 @@ public class AddProductActivity extends AppCompatActivity {
         editor.apply();
         return deletedCount;
     }
+
+    // Improved method to get image file from URI
+    private File getImageFileFromUri(Uri uri) {
+        if (uri == null) return null;
+
+        try {
+            String scheme = uri.getScheme();
+            if (scheme != null && scheme.equals("file")) {
+                // File URI
+                return new File(uri.getPath());
+            } else if (scheme != null && scheme.equals("content")) {
+                // Content URI - try to get the file path
+                String filePath = getRealPathFromURI(uri);
+                if (filePath != null) {
+                    return new File(filePath);
+                } else {
+                    // For content URIs that we can't resolve, create a temporary file
+                    return createTempFileFromUri(uri);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting image file from URI: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    // Create temporary file from content URI
+    private File createTempFileFromUri(Uri uri) {
+        try {
+            android.content.ContentResolver resolver = getContentResolver();
+            java.io.InputStream inputStream = resolver.openInputStream(uri);
+            if (inputStream != null) {
+                File tempFile = File.createTempFile("temp_image", ".jpg", getCacheDir());
+                java.io.FileOutputStream outputStream = new java.io.FileOutputStream(tempFile);
+
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+
+                outputStream.close();
+                inputStream.close();
+                return tempFile;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating temp file from URI: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    private String getRealPathFromURI(Uri contentUri) {
+        if (contentUri == null) return null;
+
+        Cursor cursor = null;
+        try {
+            String[] proj = {MediaStore.Images.Media.DATA};
+            cursor = getContentResolver().query(contentUri, proj, null, null, null);
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                return cursor.getString(column_index);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting real path from URI: " + e.getMessage());
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
     private void cleanupOldProductImages() {
         // Run this occasionally to clean up old product images
         new Thread(() -> {
             try {
                 File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
                 if (storageDir != null && storageDir.exists()) {
-                    File[] files = storageDir.listFiles((dir, name) -> name.startsWith("PRODUCT_"));
+                    File[] files = storageDir.listFiles((dir, name) -> name.startsWith("PRODUCT_") || name.startsWith("GALLERY_"));
                     if (files != null) {
                         long oneMonthAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000); // 30 days
                         int deletedCount = 0;
@@ -2095,11 +1945,6 @@ public class AddProductActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         // Clean up temporary camera file if exists
-//        if (currentPhotoPath != null) {
-//            File file = new File(currentPhotoPath);
-//            if (file.exists()) {
-//                file.delete();
-//            }
-//        }
+        // Note: We're not deleting files immediately as they might be needed for drafts
     }
 }

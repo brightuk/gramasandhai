@@ -30,23 +30,18 @@
             android:background="@android:color/white"
             app:tabIndicatorColor="#2196F3"
             app:tabSelectedTextColor="#2196F3"
-
-            app:tabTextColor="#757575">
-
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/status_all"
-
-
-                />
+            app:tabTextColor="#757575"
+            app:tabTextAppearance="@style/NoCapsTabText">
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="@string/status_all" />
 
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="@string/status_pending" />
-
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"

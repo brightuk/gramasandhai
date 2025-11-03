@@ -78,6 +78,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private TextView tvVariantsCount, tvActiveVariants, tvTotalStock, tvVariantsCountHeader;
     private TextView tvRating, tvErrorTitle, tvErrorMessage;
     private SwitchCompat switchProductStatus;
+    private String finalStock;
     private RecyclerView rvVariants;
     private RatingBar ratingBar;
     private ImageView ivProductImage;
@@ -1111,10 +1112,13 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             String discountText = "";
             double discountedPrice = 0;
 
+            finalStock=product.getString("stock");
+
             // Get original price
             if (product.has("prod_price")) {
                 try {
                     originalPrice = Double.parseDouble(product.getString("prod_price"));
+
                     finalPrice = originalPrice; // Default to original price
                 } catch (NumberFormatException e) {
                     Log.e("PRICE_ERROR", "Error parsing price: " + e.getMessage());
@@ -1223,7 +1227,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
             runOnUiThread(() -> {
                 tvVariantsCount.setText(String.valueOf(totalVariants));
                 tvActiveVariants.setText(String.valueOf(finalActiveVariants));
-                tvTotalStock.setText(String.valueOf(finalTotalStock));
+                tvTotalStock.setText(String.valueOf(finalStock));
 
                 String variantCount = String.valueOf(totalVariants) + " variant" + (totalVariants != 1 ? "s" : "");
                 Log.d("DEBUG_UI", "Setting variant count header: " + variantCount);

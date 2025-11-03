@@ -165,13 +165,14 @@
             <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/toggleDiscountType"
                 android:layout_width="match_parent"
+                android:layout_gravity="center"
                 android:layout_height="wrap_content"
                 app:singleSelection="true"
                 app:selectionRequired="true">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnNoDiscount"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="No Discount"
@@ -181,7 +182,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFlatDiscount"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="Flat"
@@ -191,7 +192,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPercentageDiscount"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:text="Percentage"

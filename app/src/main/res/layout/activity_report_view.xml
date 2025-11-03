@@ -813,7 +813,7 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnDownloadReport"
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginEnd="4dp"
@@ -824,7 +824,7 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnCancelDownload"
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginStart="4dp"

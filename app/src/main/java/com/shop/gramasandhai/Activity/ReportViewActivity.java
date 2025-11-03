@@ -683,6 +683,7 @@ public class ReportViewActivity extends AppCompatActivity {
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 String responseBodyString = response.body() != null ? response.body().string() : "";
                 Log.d(TAG, "API Response received, length: " + responseBodyString.length());
+                Log.d("API Response received" , responseBodyString);
 
                 runOnUiThread(() -> {
                     hideShimmerLoading();

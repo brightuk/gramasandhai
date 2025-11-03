@@ -168,6 +168,11 @@
         <item name="android:textColor">@color/colorPrimary</item>
     </style>
 
+    <style name="NoCapsTabText" parent="TextAppearance.Design.Tab">
+        <item name="textAllCaps">false</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
 
 
 </resources>
