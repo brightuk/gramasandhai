@@ -1045,7 +1045,7 @@ public class AddProductActivity extends AppCompatActivity {
             String sku = etSKU.getText().toString().trim();
             String hsnCode = etHSNCode.getText().toString().trim();
             String stock = etStock.getText().toString().trim();
-            String discountType = spinnerDiscountType.getSelectedItem().toString();
+            String discountType = getDiscountTypeValue(spinnerDiscountType.getSelectedItem().toString());
             String discountPrice = etDiscountPrice.getText().toString().trim();
             String status = spinnerStatus.getSelectedItem().toString();
 
@@ -1072,6 +1072,9 @@ public class AddProductActivity extends AppCompatActivity {
                     .addFormDataPart("discount_type", discountType)
                     .addFormDataPart("discount_price", discountPrice)
                     .addFormDataPart("status", status);
+
+
+            Log.d("discount_type",discountType);
 
             // Add variant control parameter
             String variantControl = radioVariantYes.isChecked() ? "1" : "0";

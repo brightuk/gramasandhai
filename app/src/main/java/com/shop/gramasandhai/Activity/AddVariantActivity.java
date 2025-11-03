@@ -1098,6 +1098,8 @@ public class AddVariantActivity extends AppCompatActivity {
                 }
             }
 
+
+
             RequestBody requestBody = multipartBuilder.build();
 
             Request request = new Request.Builder()
