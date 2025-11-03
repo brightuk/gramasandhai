@@ -1,4 +1,24 @@
 <resources>
     <dimen name="fab_margin">48dp</dimen>
     <dimen name="activity_horizontal_margin">48dp</dimen>
+
+    <!-- Larger margins and padding for tablets -->
+    <dimen name="card_margin_horizontal">16dp</dimen>
+    <dimen name="card_margin_vertical">8dp</dimen>
+    <dimen name="card_padding">24dp</dimen>
+
+    <!-- Slightly larger text for tablets -->
+    <dimen name="text_size_xlarge">20sp</dimen>
+    <dimen name="text_size_large">18sp</dimen>
+    <dimen name="text_size_medium">16sp</dimen>
+    <dimen name="text_size_medium_small">15sp</dimen>
+    <dimen name="text_size_small">14sp</dimen>
+
+    <!-- Larger buttons for tablets -->
+    <dimen name="button_height">40dp</dimen>
+    <dimen name="button_min_width">100dp</dimen>
+
+    <!-- More spacing for tablets -->
+    <dimen name="element_spacing_medium">16dp</dimen>
+    <dimen name="element_spacing_large">20dp</dimen>
 </resources>

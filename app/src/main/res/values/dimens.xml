@@ -6,4 +6,39 @@
     <dimen name="nav_header_height">176dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="chip_height">40dp</dimen>
+
+    <!-- Card dimensions -->
+    <dimen name="card_margin_horizontal">8dp</dimen>
+    <dimen name="card_margin_vertical">4dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="card_corner_radius">12dp</dimen>
+    <dimen name="card_elevation">2dp</dimen>
+
+    <!-- Text sizes -->
+    <dimen name="text_size_xlarge">18sp</dimen>
+    <dimen name="text_size_large">16sp</dimen>
+    <dimen name="text_size_medium">14sp</dimen>
+    <dimen name="text_size_medium_small">13sp</dimen>
+    <dimen name="text_size_small">12sp</dimen>
+
+    <!-- Spacing -->
+    <dimen name="element_spacing_xsmall">4dp</dimen>
+    <dimen name="element_spacing_small">8dp</dimen>
+    <dimen name="element_spacing_medium">12dp</dimen>
+    <dimen name="element_spacing_large">16dp</dimen>
+
+    <!-- Button dimensions -->
+    <dimen name="button_height">35dp</dimen>
+    <dimen name="button_min_width">80dp</dimen>
+
+    <!-- Icon sizes -->
+    <dimen name="icon_size_medium">24dp</dimen>
+
+    <!-- Status dimensions -->
+    <dimen name="status_padding_horizontal">12dp</dimen>
+    <dimen name="status_padding_vertical">4dp</dimen>
+
+    <!-- Other -->
+    <dimen name="divider_height">1dp</dimen>
+    <dimen name="clickable_padding_vertical">4dp</dimen>
 </resources>
