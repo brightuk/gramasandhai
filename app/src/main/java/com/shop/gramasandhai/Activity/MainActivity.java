@@ -4,6 +4,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -48,6 +50,12 @@ public class MainActivity extends AppCompatActivity {
     private ShimmerFrameLayout shimmerFrameLayout;
     private ScrollView mainScrollView;
 
+    // Automatic refresh variables
+    private static final long AUTO_REFRESH_INTERVAL = 1000; // 1 sec
+    private Handler autoRefreshHandler;
+    private Runnable autoRefreshRunnable;
+    private boolean isAutoRefreshRunning = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
         initializeViews();
         setupClickListeners();
         updateCurrentDate();
+
+        // Initialize auto refresh handler
+        setupAutoRefresh();
 
         // Show shimmer and load data
         showShimmerLoading();
@@ -75,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
         if (toolbar != null) {
             Log.d("TOOLBAR_DEBUG", "Toolbar found, setting as support action bar");
             setSupportActionBar(toolbar);
-
 
             // Optional: Enable the title if you want
             if (getSupportActionBar() != null) {
@@ -141,8 +151,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-
-        shimmerFrameLayout = findViewById(R.id.shimmer_view_container); // Add this to your main layout
         shimmerFrameLayout = findViewById(R.id.shimmer_view_container);
         mainScrollView = findViewById(R.id.main_scroll_view);
 
@@ -158,10 +166,6 @@ public class MainActivity extends AppCompatActivity {
         toolbar.setTitle(name);
 //        tvShopName.setText(name);
     }
-
-
-
-
 
     private void showShimmerLoading() {
         mainScrollView.setVisibility(View.GONE);
@@ -207,6 +211,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void performLogout() {
+        // Stop auto refresh before logout
+        stopAutoRefresh();
+
         // Clear user session
         clearUserSession();
 
@@ -241,6 +248,48 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Setup automatic refresh functionality
+     */
+    private void setupAutoRefresh() {
+        autoRefreshHandler = new Handler(Looper.getMainLooper());
+        autoRefreshRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (isAutoRefreshRunning) {
+                    Log.d("AUTO_REFRESH", "Auto refreshing dashboard data...");
+                    dashboardCount(shopId());
+
+                    // Schedule next refresh
+                    autoRefreshHandler.postDelayed(this, AUTO_REFRESH_INTERVAL);
+                }
+            }
+        };
+    }
+
+    /**
+     * Start automatic refresh
+     */
+    private void startAutoRefresh() {
+        if (!isAutoRefreshRunning) {
+            isAutoRefreshRunning = true;
+            Log.d("AUTO_REFRESH", "Starting auto refresh with interval: " + AUTO_REFRESH_INTERVAL + "ms");
+
+            // Start the first refresh after the interval
+            autoRefreshHandler.postDelayed(autoRefreshRunnable, AUTO_REFRESH_INTERVAL);
+        }
+    }
+
+    /**
+     * Stop automatic refresh
+     */
+    private void stopAutoRefresh() {
+        if (isAutoRefreshRunning) {
+            isAutoRefreshRunning = false;
+            autoRefreshHandler.removeCallbacks(autoRefreshRunnable);
+            Log.d("AUTO_REFRESH", "Auto refresh stopped");
+        }
+    }
 
     public void dashboardCount(String shopId) {
         OkHttpClient client = new OkHttpClient();
@@ -276,17 +325,22 @@ public class MainActivity extends AppCompatActivity {
 
                         if (response.isSuccessful() && "success".equals(responseObject.optString("status", ""))) {
                             // Success logic
-                            String pending = responseObject.optString("pending", "");
-                            String process = responseObject.optString("process", "");
-                            String totalorder = responseObject.optString("totalorder", "");
-                            String completed = responseObject.optString("completed", "");
-                            String revenue = responseObject.optString("revenue", "");
+                            String pending = responseObject.optString("pending", "0");
+                            String process = responseObject.optString("process", "0");
+                            String totalorder = responseObject.optString("totalorder", "0");
+                            String completed = responseObject.optString("completed", "0");
+                            String revenue = responseObject.optString("revenue", "0");
 
                             // Update UI on main thread
                             orderCount.setText(totalorder);
                             totalRevenue.setText(revenue);
                             completedCount.setText(completed);
                             pendingOrderCount.setText(pending);
+
+                            // Also update the date on each refresh
+                            updateCurrentDate();
+
+                            Log.d("AUTO_REFRESH", "Dashboard data updated successfully at " + new Date());
 
                         } else {
                             if ("Invalid credentials".equals(responseObject.optString("error"))) {
@@ -306,24 +360,45 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (shimmerFrameLayout != null) {
-            shimmerFrameLayout.startShimmer();
-        }
+        Log.d("AUTO_REFRESH", "onResume - starting auto refresh");
+
+        // Start auto refresh when activity is visible
+        startAutoRefresh();
+
+        // Also refresh data immediately when coming back to the activity
+        dashboardCount(shopId());
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d("AUTO_REFRESH", "onPause - stopping auto refresh");
+
+        // Stop auto refresh when activity is not visible to save resources
+        stopAutoRefresh();
+
         if (shimmerFrameLayout != null) {
             shimmerFrameLayout.stopShimmer();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d("AUTO_REFRESH", "onDestroy - cleaning up auto refresh");
+
+        // Clean up to prevent memory leaks
+        stopAutoRefresh();
+        if (autoRefreshHandler != null) {
+            autoRefreshHandler.removeCallbacksAndMessages(null);
         }
     }
 
     private void setupClickListeners() {
         // Quick Actions Click Listeners
         setupCardClickListener(R.id.card_products, ProductManageActivity.class);
-        setupCardClickListener(R.id.card_orders, OrdersManageActivity.class); // Replace with your actual Orders activity
-        setupCardClickListener(R.id.card_inventory, ReportViewActivity.class); // Replace with your actual Inventory activity
+        setupCardClickListener(R.id.card_orders, OrdersManageActivity.class);
+        setupCardClickListener(R.id.card_inventory, ReportViewActivity.class);
 
         // Add more cards as needed
         // setupCardClickListener(R.id.card_customers, CustomersActivity.class);
@@ -350,5 +425,12 @@ public class MainActivity extends AppCompatActivity {
         SimpleDateFormat sdf = new SimpleDateFormat("EEEE, MMMM d, yyyy • hh:mm a", Locale.getDefault());
         String currentDate = sdf.format(new Date());
 //        tvDate.setText(currentDate);
+    }
+
+    // Manual refresh method that can be called from a button
+    public void manualRefresh() {
+        Log.d("AUTO_REFRESH", "Manual refresh triggered");
+        showShimmerLoading();
+        dashboardCount(shopId());
     }
 }
