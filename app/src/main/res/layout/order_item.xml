@@ -170,7 +170,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="₹283.95"
-                android:textColor="@android:color/black"
+                android:textColor="#FF0000"
                 android:textSize="@dimen/text_size_xlarge"
                 android:textStyle="bold"
                 android:maxLines="1" />

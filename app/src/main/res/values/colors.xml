@@ -22,7 +22,8 @@
 
     <color name="primary_dark">#1B5E20</color>
     <color name="primary_light">#4CAF50</color>
-
+    <color name="variant_bg_even">#F8F9FA</color>  <!-- Light gray for even items -->
+    <color name="variant_bg_odd">#E9ECEF</color>   <!-- Slightly darker gray for odd items -->
     <color name="light_background">#F5F5F5</color>
 
     <color name="white_alpha">#B3FFFFFF</color>

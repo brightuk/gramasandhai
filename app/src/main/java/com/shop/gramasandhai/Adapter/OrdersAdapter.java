@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -16,6 +17,10 @@ import com.google.android.material.card.MaterialCardView;
 import com.shop.gramasandhai.Model.Order;
 import com.shop.gramasandhai.Model.Variant;
 import com.shop.gramasandhai.R;
+
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 import java.util.List;
 
@@ -34,7 +39,7 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
     }
 
     public OrdersAdapter(List<Order> orders, OnOrderClickListener orderClickListener,
-                         OnStatusUpdateListener statusUpdateListener,OnOrderClickListener cancelClickListener) {
+                         OnStatusUpdateListener statusUpdateListener) {
         this.orders = orders;
         this.orderClickListener = orderClickListener;
         this.statusUpdateListener = statusUpdateListener;
@@ -102,7 +107,11 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
             tvOrderStatus.setText(order.getOrderStatus());
             tvCustomerName.setText(order.getCustomerName());
             tvOrderDate.setText(order.getOrderedDate());
-            tvOrderAmount.setText("₹" + order.getAmount());
+
+            // Set formatted amount with Indian currency format
+            String formattedAmount = formatIndianCurrency(Double.valueOf(order.getAmount()));
+            tvOrderAmount.setText(formattedAmount);
+
             tvItemsCount.setText(order.getItemsCount() + " items");
 
             // Set products preview
@@ -126,8 +135,6 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
             setStatusUI(order.getOrderStatus());
 
             // Set click listeners
-//            cardView.setOnClickListener(v -> orderClickListener.onOrderClick(order));
-            btnViewDetails.setOnClickListener(v -> orderClickListener.onOrderClick(order));
             btnUpdateStatus.setOnClickListener(v -> statusUpdateListener.onStatusUpdateClick(order));
 
             // Products header click listener for expand/collapse
@@ -137,6 +144,16 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
                 setExpandState(!isExpanded);
                 notifyItemChanged(getAdapterPosition());
             });
+
+            // Show/hide View Details button based on order status
+            if ("COMPLETED".equals(order.getOrderStatus())) {
+                btnViewDetails.setVisibility(View.GONE);
+            } else if ("CANCELLED".equals(order.getOrderStatus())) {
+                btnViewDetails.setVisibility(View.GONE);
+            } else {
+                btnViewDetails.setVisibility(View.VISIBLE);
+                btnViewDetails.setOnClickListener(v -> orderClickListener.onOrderClick(order));
+            }
         }
 
         private void setExpandState(boolean isExpanded) {
@@ -178,6 +195,24 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
             tvOrderStatus.setBackgroundResource(backgroundRes);
             btnUpdateStatus.setText(buttonText);
         }
+
+        // Helper method to format currency in Indian format
+        private String formatIndianCurrency(double amount) {
+            try {
+                // Round to nearest integer
+                long roundedAmount = Math.round(amount);
+
+                // Use Indian locale for formatting with commas
+                DecimalFormat indianFormat = (DecimalFormat) NumberFormat.getNumberInstance(new Locale("en", "IN"));
+                indianFormat.setGroupingUsed(true);
+                indianFormat.setMaximumFractionDigits(0);
+
+                return "₹" + indianFormat.format(roundedAmount);
+            } catch (Exception e) {
+                // Fallback to simple format
+                return "₹" + Math.round(amount);
+            }
+        }
     }
 
     // Variants Adapter inner class
@@ -201,7 +236,7 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
         @Override
         public void onBindViewHolder(@NonNull VariantViewHolder holder, int position) {
             Variant variant = variants.get(position);
-            holder.bind(variant);
+            holder.bind(variant, position);
         }
 
         @Override
@@ -211,6 +246,7 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
 
         static class VariantViewHolder extends RecyclerView.ViewHolder {
             private TextView tvProductName, tvQuantity, tvWeight, tvProductPrice;
+            private View itemBackground;
 
             public VariantViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -218,13 +254,47 @@ public class OrdersAdapter extends RecyclerView.Adapter<OrdersAdapter.OrderViewH
                 tvQuantity = itemView.findViewById(R.id.tvQuantity);
                 tvWeight = itemView.findViewById(R.id.tvWeight);
                 tvProductPrice = itemView.findViewById(R.id.tvProductPrice);
+                itemBackground = itemView; // The root view of variant_item layout
             }
 
-            public void bind(Variant variant) {
+            public void bind(Variant variant, int position) {
                 tvProductName.setText(variant.getProdName());
                 tvQuantity.setText("Qty: " + variant.getProdQty());
                 tvWeight.setText(variant.getWeight() + "g");
-                tvProductPrice.setText("₹" + variant.getProdPrice());
+
+                // Format product price with Indian currency
+                String formattedPrice = formatIndianCurrency(Double.valueOf(variant.getProdPrice()));
+                tvProductPrice.setText(formattedPrice);
+
+                // Set alternating background colors
+                if (position % 2 == 0) {
+                    // Even positions - lighter color
+                    itemBackground.setBackgroundColor(
+                            ContextCompat.getColor(itemView.getContext(), R.color.variant_bg_even)
+                    );
+                } else {
+                    // Odd positions - slightly darker color
+                    itemBackground.setBackgroundColor(
+                            ContextCompat.getColor(itemView.getContext(), R.color.variant_bg_odd)
+                    );
+                }
+            }
+
+            // Helper method for variant price formatting
+            private String formatIndianCurrency(double amount) {
+                try {
+                    // Round to nearest integer
+                    long roundedAmount = Math.round(amount);
+
+                    // Use Indian locale for formatting with commas
+                    DecimalFormat indianFormat = (DecimalFormat) NumberFormat.getNumberInstance(new Locale("en", "IN"));
+                    indianFormat.setGroupingUsed(true);
+                    indianFormat.setMaximumFractionDigits(0);
+
+                    return "₹" + indianFormat.format(roundedAmount);
+                } catch (Exception e) {
+                    return "₹" + Math.round(amount);
+                }
             }
         }
     }

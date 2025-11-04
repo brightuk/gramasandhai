@@ -116,8 +116,7 @@ public class OrdersManageActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         ordersAdapter = new OrdersAdapter(filteredOrdersList,
                 this::onOrderClicked,
-                this::onStatusUpdateClicked,
-                this::onCancelClicked);
+                this::onStatusUpdateClicked);
         ordersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         ordersRecyclerView.setAdapter(ordersAdapter);
     }
