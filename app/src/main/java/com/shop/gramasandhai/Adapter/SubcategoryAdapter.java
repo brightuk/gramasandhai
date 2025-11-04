@@ -64,7 +64,7 @@ public class SubcategoryAdapter extends RecyclerView.Adapter<SubcategoryAdapter.
         holder.tvItemCount.setVisibility(View.VISIBLE);
         // Hide count for categories as it's not in the API response
 
-        holder.tvItemCount.setText(subcategory.getProductCount());
+        holder.tvItemCount.setText(subcategory.getProductCount()+" items");
 
         // Load image with Glide
         if (subcategory.getImageUrl() != null && !subcategory.getImageUrl().isEmpty()) {
