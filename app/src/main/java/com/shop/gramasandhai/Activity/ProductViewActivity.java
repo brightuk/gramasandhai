@@ -144,6 +144,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         tvProductName = findViewById(R.id.tvProductName);
         tvProductId = findViewById(R.id.tvProductId);
         tvProductPrice = findViewById(R.id.tvProductPrice);
+        tvProductPrice.setVisibility(View.GONE);
         tvProductDescription = findViewById(R.id.tvProductDescription);
         tvStatusBadge = findViewById(R.id.tvStatusBadge);
         switchProductStatus = findViewById(R.id.switchProductStatus);
@@ -154,7 +155,9 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         progressBar = findViewById(R.id.progressBar);
         fabAddVariant = findViewById(R.id.fabAddVariant);
         btnEditPrice = findViewById(R.id.btnEditPrice);
+        btnEditPrice.setVisibility(View.GONE);
         tvProductDiscount = findViewById(R.id.tvProductDiscount);
+        tvProductDiscount.setVisibility(View.GONE);
         tvDiscountedPriceMain = findViewById(R.id.tvDiscountedPriceMain);
         layoutProductDiscount = findViewById(R.id.layoutProductDiscount);
 
