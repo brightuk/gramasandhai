@@ -84,7 +84,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
     private ImageView ivProductImage;
     private ExtendedFloatingActionButton fabAddVariant;
     private MaterialButton btnEditPrice;
-    private LinearLayout layoutProductDiscount;
+    private LinearLayout layoutProductDiscount,productDetails;
 
     private ProgressBar progressBar;
 
@@ -124,7 +124,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_product_view);
 
-        // Only get product ID from intent
+        // Only get product ID from intentlayoutProductDiscount
         productId = getIntent().getStringExtra("prod_id");
         if (productId == null) {
             Toast.makeText(this, "Product ID not found", Toast.LENGTH_SHORT).show();
@@ -144,7 +144,6 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         tvProductName = findViewById(R.id.tvProductName);
         tvProductId = findViewById(R.id.tvProductId);
         tvProductPrice = findViewById(R.id.tvProductPrice);
-        tvProductPrice.setVisibility(View.GONE);
         tvProductDescription = findViewById(R.id.tvProductDescription);
         tvStatusBadge = findViewById(R.id.tvStatusBadge);
         switchProductStatus = findViewById(R.id.switchProductStatus);
@@ -155,9 +154,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
         progressBar = findViewById(R.id.progressBar);
         fabAddVariant = findViewById(R.id.fabAddVariant);
         btnEditPrice = findViewById(R.id.btnEditPrice);
-        btnEditPrice.setVisibility(View.GONE);
         tvProductDiscount = findViewById(R.id.tvProductDiscount);
-        tvProductDiscount.setVisibility(View.GONE);
         tvDiscountedPriceMain = findViewById(R.id.tvDiscountedPriceMain);
         layoutProductDiscount = findViewById(R.id.layoutProductDiscount);
 
@@ -1178,7 +1175,7 @@ public class ProductViewActivity extends AppCompatActivity implements VariantAda
 
                 // Show discount text
                 tvProductDiscount.setText(discountText);
-                layoutProductDiscount.setVisibility(View.VISIBLE);
+//                layoutProductDiscount.setVisibility(View.VISIBLE);
 
                 Log.d("DISCOUNT_DEBUG", "Discount applied - Original: " + originalPrice +
                         ", Final: " + finalPrice + ", Discount: " + discountText);

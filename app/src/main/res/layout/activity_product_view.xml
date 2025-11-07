@@ -145,9 +145,11 @@
 
                                     <!-- Price Section with Edit Icon -->
                                     <LinearLayout
+                                        android:id="@+id/productDetails"
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="5dp"
+                                        android:visibility="gone"
                                         android:orientation="horizontal"
                                         android:gravity="center_vertical">
 
@@ -193,7 +195,7 @@
                                         android:orientation="horizontal"
                                         android:gravity="center_vertical"
                                         android:layout_marginTop="8dp"
-                                        android:visibility="visible">
+                                        android:visibility="gone">
 
                                         <ImageView
                                             android:layout_width="16dp"
